@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="da">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>TAXA-overlap • TMDB</title>
+    <link rel="manifest" href="./manifest.webmanifest">
+    <meta name="theme-color" content="#0f172a" />
+    <!-- Tailwind via CDN for quick prototyping -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- React 18 UMD + Babel for in-browser JSX compilation (dev only) -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+      /* Basic typography fallback for systems without Tailwind loaded */
+      body { background:#0f172a; color:#e2e8f0; }
+    </style>
+  </head>
+  <body class="min-h-screen">
+    <noscript>Du skal slå JavaScript til for at bruge denne app.</noscript>
+    <div id="root"></div>
+    <!-- Your app code -->
+    <script type="text/babel" data-presets="react" src="./app.jsx"></script>
+  </body>
+</html>
