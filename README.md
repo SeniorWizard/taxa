@@ -10,6 +10,10 @@ Det giver altid en afbrydelse og diverse opslag og internetsøgninger, og som of
 
 Denne lille app er født med data fra TAXA, det er så muligt at søge på [TMDB](https://www.themoviedb.org/) efter film og serier og derefter få en nøjagtig liste over hvilke skuespillere der **også** spiller med i TAXA, herunder hvilke roller, antallet af afsnit mv.
 
+## Demo
+
+Der er ren javascript og den er deployet på [git.foo.dk/taxa/](https://git.foo.dk/taxa/)  så bare klik og prøv
+
 ## Konfiguration
 
 ### API nøgle 
