@@ -33,3 +33,22 @@ I de fleste browsere kan man under **Del/Share** vælge tilføj til skrivebord/h
 ## Andre versioner, features, fejl mv
 
 Jeg tror ikke jeg kommer til at lave mere ved den, det var et sjovt projekt der tog 3 timer en fredag eftermiddag. Jeg er godt klar over den er grim, og at alt det med API-nøgler er lidt noget bøvl, og UX også er lidt underlig hvor man selv skal scrolle. Men den virker fint for mig, og jeg er bange for at ryge ned i kaninhullet hvis den skal være meget bedre - du er velkommen til bare at forke den og pille videre.
+
+
+## Ideer og lavthængende frugter
+
+### UI/UX
+* Logo/ikon nok noget med kronetaxa
+* Flytte konfiguration med nøgle osv ind bag et tandhjul
+* Fokus på det der sker, så den hopper til svar efter søgning og skuespillere efter serie/film er valgt
+* TMDB logo og credits pænere
+
+### Funktionalitet
+* Tillad "Adult", det viser sig at det defult er filtreret fra og det betyder at man ikke kan fremsøg fx de gamle sengekantsfilm
+* Lave en backend/proxy som kan have api-nøglen og lave noget throttle hvis nødvendigt, så folk ikke skal lave deres egen nøgle. Dvs lave en cyklisk buffer og begrænse til fx 40 req/s og respektere 429 svar
+* Backend bør også kunne cache en del, fx taxa-data opdateres næppe særlig hyppigt
+* Måske en art device/bruger identifikation - oauth2?
+
+### Data
+* API append to response og hente medvirkende for hver episode, så vi kan liste flere detaljer om skuespillerne end blot "Lægen 2 episoder", så man kan gå længere ned og få at vide hvilke og derest titel
+* Have andre reference serier end taxa - særligt når der er nul hits (fx huset på christianshavn, matador, badehotellet), eller valgfrit/konfigurerbart.
