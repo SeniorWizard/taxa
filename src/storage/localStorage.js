@@ -6,6 +6,7 @@ export const STORAGE_KEYS = Object.freeze({
   auth: "tmdb_auth_v1",
   language: "tmdb_lang_v1",
   connectionMode: "tmdb_connection_mode_v1",
+  proxyClientId: "taxa_proxy_client_id_v1",
 });
 
 function storageOrThrow(storage) {
@@ -68,6 +69,33 @@ export function saveConnectionMode(
   storage = globalThis.localStorage,
 ) {
   storageOrThrow(storage).setItem(STORAGE_KEYS.connectionMode, mode);
+}
+
+export function loadOrCreateProxyClientId(
+  storage = globalThis.localStorage,
+  uuidFactory = defaultUuid,
+) {
+  const target = storageOrThrow(storage);
+  const existing = target.getItem(STORAGE_KEYS.proxyClientId) || "";
+  if (/^[A-Za-z0-9._-]{16,80}$/.test(existing)) {
+    return existing;
+  }
+
+  const generated = String(uuidFactory()).replace(/[^A-Za-z0-9._-]/g, "");
+  if (generated.length < 16 || generated.length > 80) {
+    throw new Error("Kunne ikke oprette et gyldigt anonymt klient-id.");
+  }
+  target.setItem(STORAGE_KEYS.proxyClientId, generated);
+  return generated;
+}
+
+function defaultUuid() {
+  if (typeof globalThis.crypto?.randomUUID === "function") {
+    return globalThis.crypto.randomUUID();
+  }
+
+  const random = Math.random().toString(36).slice(2);
+  return `taxa-${Date.now().toString(36)}-${random}-${random}`;
 }
 
 export function readTaxaCache(

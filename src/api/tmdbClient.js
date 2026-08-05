@@ -70,6 +70,27 @@ export function buildDirectUrl(path, params = {}, auth = "") {
   return url.toString();
 }
 
+export function buildProxyUrl(proxyBaseUrl, endpoint, params = {}) {
+  const url = new URL(proxyBaseUrl);
+  const normalizedEndpoint = String(endpoint).replace(/^\/+|\/+$/g, "");
+
+  // Synology-installationer kan pege direkte på index.php uden rewrite.
+  // Ellers anvendes almindelige paths som /tmdb/search.
+  if (url.pathname.toLowerCase().endsWith(".php")) {
+    url.searchParams.set("route", normalizedEndpoint);
+  } else {
+    url.pathname = `${url.pathname.replace(/\/+$/, "")}/${normalizedEndpoint}`;
+  }
+
+  for (const [key, value] of Object.entries(params)) {
+    if (value !== undefined && value !== null && value !== "") {
+      url.searchParams.set(key, String(value));
+    }
+  }
+
+  return url.toString();
+}
+
 function errorMessage(status, source, body) {
   const prefix = source === "proxy" ? "Proxy-fejl" : "TMDB-fejl";
 
@@ -172,7 +193,7 @@ function directProvider(auth, fetchImpl) {
   };
 }
 
-function proxyProvider(proxyBaseUrl, fetchImpl) {
+function proxyProvider(proxyBaseUrl, proxyClientId, fetchImpl) {
   async function get(endpoint, params, signal) {
     if (!proxyBaseUrl) {
       throw new TmdbRequestError(
@@ -181,16 +202,14 @@ function proxyProvider(proxyBaseUrl, fetchImpl) {
       );
     }
 
-    const url = new URL(`${proxyBaseUrl}/${endpoint}`);
-    for (const [key, value] of Object.entries(params)) {
-      if (value !== undefined && value !== null && value !== "") {
-        url.searchParams.set(key, String(value));
-      }
+    const headers = { accept: "application/json" };
+    if (proxyClientId) {
+      headers["X-Taxa-Client-ID"] = proxyClientId;
     }
 
     return requestJson(
-      url.toString(),
-      { headers: { accept: "application/json" }, signal },
+      buildProxyUrl(proxyBaseUrl, endpoint, params),
+      { headers, signal },
       "proxy",
       fetchImpl,
     );
@@ -226,13 +245,22 @@ function proxyProvider(proxyBaseUrl, fetchImpl) {
 }
 
 function canFallback(error) {
-  return error?.name !== "AbortError";
+  if (error?.name === "AbortError") return false;
+  if (error?.source !== "proxy") return false;
+  return (
+    error.status === 0 ||
+    error.status === 401 ||
+    error.status === 404 ||
+    error.status === 429 ||
+    error.status >= 500
+  );
 }
 
 export function createTmdbClient({
   mode = CONNECTION_MODES.DIRECT,
   auth = "",
   proxyBaseUrl = "",
+  proxyClientId = "",
   fetchImpl = globalThis.fetch,
   onSource = () => {},
 } = {}) {
@@ -240,8 +268,13 @@ export function createTmdbClient({
     throw new TypeError("createTmdbClient kræver en fetch-funktion.");
   }
 
+  const normalizedProxyBaseUrl = proxyBaseUrl.replace(/\/+$/, "");
   const direct = directProvider(auth, fetchImpl);
-  const proxy = proxyProvider(proxyBaseUrl.replace(/\/+$/, ""), fetchImpl);
+  const proxy = proxyProvider(
+    normalizedProxyBaseUrl,
+    proxyClientId,
+    fetchImpl,
+  );
 
   async function invoke(method, args) {
     if (mode === CONNECTION_MODES.DIRECT) {
@@ -256,7 +289,7 @@ export function createTmdbClient({
       return data;
     }
 
-    if (proxyBaseUrl) {
+    if (normalizedProxyBaseUrl) {
       try {
         const data = await proxy[method](args);
         onSource("proxy");
@@ -267,15 +300,15 @@ export function createTmdbClient({
     }
 
     const data = await direct[method](args);
-    onSource(proxyBaseUrl ? "direct-fallback" : "direct");
+    onSource(normalizedProxyBaseUrl ? "direct-fallback" : "direct");
     return data;
   }
 
   return {
     isConfigured() {
       if (mode === CONNECTION_MODES.DIRECT) return Boolean(auth.trim());
-      if (mode === CONNECTION_MODES.PROXY) return Boolean(proxyBaseUrl);
-      return Boolean(proxyBaseUrl || auth.trim());
+      if (mode === CONNECTION_MODES.PROXY) return Boolean(normalizedProxyBaseUrl);
+      return Boolean(normalizedProxyBaseUrl || auth.trim());
     },
 
     searchTitles(args) {
