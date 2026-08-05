@@ -1,54 +1,118 @@
-# TAXA
+# TAXA-overlap 1.1.0 – Vite-migrering
 
-## Formål 
-Jeg har en løbende diskussion med min kone om hvorvidt Danmark er tilpas lille land til at talentmassen indenfor skuespillere er tilsvarende lille og det derfor ender med at der højst er et par håndfulde dygtige i hver generation. Dette medfører naturligvis at disse medvirker i snart sagt alle større produktioner.
+Denne branch migrerer version 1.0.0 til Vite uden at fjerne muligheden for at bruge brugerens egen TMDB-nøgle.
 
-Som reference benyttes tv-serien TAXA fra 1997 - 56 afsnit fordelt over 5 sæsoner, og hver eneste gang vi sidder og ser en dansk film eller tv-serie spøger jeg ofte
-> Er det ikke ham/hende der er med i TAXA?
+## 1. Krav på Mac
 
-Det giver altid en afbrydelse og diverse opslag og internetsøgninger, og som oftes er det tilfældet. 
+Projektet bruger Node.js 22 eller nyere.
 
-Denne lille app er født med data fra TAXA, det er så muligt at søge på [TMDB](https://www.themoviedb.org/) efter film og serier og derefter få en nøjagtig liste over hvilke skuespillere der **også** spiller med i TAXA, herunder hvilke roller, antallet af afsnit mv.
+Med `nvm`:
 
-## Demo
+```bash
+nvm install 22
+nvm use
+```
 
-Der er ren javascript og den er deployet på [git.foo.dk/taxa/](https://git.foo.dk/taxa/)  så bare klik og prøv
+Kontrollér:
 
-## Konfiguration
+```bash
+node --version
+npm --version
+```
 
-### API nøgle 
+Intel-Mac, VS Code og Vim kræver ingen særlige tilpasninger.
 
-Det er nødvendigt med en API-key til [TMDB](https://www.themoviedb.org/) for at kunne foretage søgninger igennem deres API, hvis ikke du har en allerede er det forholdsvis enkelt:
+## 2. Første installation
 
-**1. Opret konto**
-**2. Log ind og gå til settings**
-**3. Find API sektionen og klik request API key**
+Fra projektmappen:
 
-Når den er godkendt kan du og paste nøglen ind i applikationen hvor den gennems i lokal storage, så det skulle meget vel være en engangsforteelse (pr device/browser dog).
+```bash
+npm install
+npm test
+npm run dev
+```
 
-### App-like funktionalitet 
+Vite viser den lokale adresse i terminalen. Med standard-base åbnes appen normalt på:
 
-I de fleste browsere kan man under **Del/Share** vælge tilføj til skrivebord/hjemmeskærm - jeg har forsøgt at lave det sådan at det ligner en applikation.
+```text
+http://localhost:5173/taxa/
+```
 
-## Andre versioner, features, fejl mv
+`npm install` opretter `package-lock.json`. Commit den fil, før GitHub Pages-workflowet køres, fordi workflowet bruger `npm ci`.
 
-Jeg tror ikke jeg kommer til at lave mere ved den, det var et sjovt projekt der tog 3 timer en fredag eftermiddag. Jeg er godt klar over den er grim, og at alt det med API-nøgler er lidt noget bøvl, og UX også er lidt underlig hvor man selv skal scrolle. Men den virker fint for mig, og jeg er bange for at ryge ned i kaninhullet hvis den skal være meget bedre - du er velkommen til bare at forke den og pille videre.
+## 3. Production build
 
+```bash
+npm run build
+npm run preview
+```
 
-## Ideer og lavthængende frugter
+De statiske deploymentfiler oprettes i `dist/`.
 
-### UI/UX
-* Logo/ikon nok noget med kronetaxa
-* Flytte konfiguration med nøgle osv ind bag et tandhjul
-* Fokus på det der sker, så den hopper til svar efter søgning og skuespillere efter serie/film er valgt
-* TMDB logo og credits pænere
+## 4. GitHub Pages
 
-### Funktionalitet
-* Tillad "Adult", det viser sig at det defult er filtreret fra og det betyder at man ikke kan fremsøg fx de gamle sengekantsfilm
-* Lave en backend/proxy som kan have api-nøglen og lave noget throttle hvis nødvendigt, så folk ikke skal lave deres egen nøgle. Dvs lave en cyklisk buffer og begrænse til fx 40 req/s og respektere 429 svar
-* Backend bør også kunne cache en del, fx taxa-data opdateres næppe særlig hyppigt
-* Måske en art device/bruger identifikation - oauth2?
+`vite.config.js` har som standard:
 
-### Data
-* API append to response og hente medvirkende for hver episode, så vi kan liste flere detaljer om skuespillerne end blot "Lægen 2 episoder", så man kan gå længere ned og få at vide hvilke og derest titel
-* Have andre reference serier end taxa - særligt når der er nul hits (fx huset på christianshavn, matador, badehotellet), eller valgfrit/konfigurerbart.
+```text
+/taxa/
+```
+
+Det passer til den nuværende placering `https://git.foo.dk/taxa/`.
+
+Workflowet `.github/workflows/deploy-pages.yml` bygger og publicerer `dist/`. Hvis branch-navnet, som skal udgives, ikke er `main`, ændres dette i workflowets `branches`-felt, eller migreringsbranchen merges først til `main`.
+
+I repository-indstillingerne skal Pages-kilden være **GitHub Actions**.
+
+## 5. Direkte TMDB-nøgle og fremtidig proxy
+
+Uden yderligere konfiguration virker appen som version 1.0: brugeren indtaster selv en v3 API key eller et v4 Bearer-token.
+
+Når PHP-proxyen senere findes, kopieres `.env.example` til `.env.production` og proxyadressen udfyldes:
+
+```env
+VITE_BASE_PATH=/taxa/
+VITE_TMDB_PROXY_URL=https://api.foo.dk/tmdb
+```
+
+Derefter tilbyder appen tre forbindelsestyper:
+
+- Automatisk: proxy først, egen nøgle som fallback.
+- Kun proxy.
+- Direkte med egen nøgle.
+
+Proxykontrakten er dokumenteret i `docs/PROXY_CONTRACT.md`.
+
+Vigtigt: Læg aldrig TMDB-tokenet i en variabel med navnet `VITE_*`. Vite indbygger disse værdier i browserens JavaScript, så de er offentlige.
+
+## 6. Test
+
+```bash
+npm test
+```
+
+Testene dækker blandt andet:
+
+- sorteringsreglerne fra version 1.0
+- billing order `0`
+- match på person-id
+- API-key/Bearer-detektion
+- proxy til direkte fallback
+- sprogafhængig TAXA-cache
+- ødelagt JSON i localStorage
+
+## 7. PWA
+
+Manifest og service worker ligger i `public/`.
+
+Service workeren:
+
+- cacher appens egne statiske filer
+- bruger network-first ved navigation
+- cacher TMDB-billeder med stale-while-revalidate
+- cacher ikke TMDB API-svar
+
+Efter en deployment kan en gammel service worker om nødvendigt fjernes i browserens udviklerværktøjer under **Application → Service Workers**.
+
+## 8. Midlertidigt ikon
+
+`public/icons/` indeholder et enkelt midlertidigt TAXA/krone-ikon, så PWA-installation kan testes. Det kan senere erstattes af det endelige logo uden kodeændringer, hvis filnavne og størrelser bevares.

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="TAXA-overlap">
+  <rect width="512" height="512" rx="108" fill="#0f172a"/>
+  <path d="M155 171l37-59 64 45 64-45 37 59-23 70H178z" fill="#facc15"/>
+  <rect x="82" y="220" width="348" height="170" rx="50" fill="#facc15"/>
+  <rect x="118" y="254" width="276" height="94" rx="26" fill="#111827"/>
+  <text x="256" y="322" text-anchor="middle" font-family="system-ui, sans-serif" font-size="62" font-weight="800" fill="#f8fafc">TAXA</text>
+</svg>
