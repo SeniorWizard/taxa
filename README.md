@@ -97,20 +97,12 @@ Proxy-URL'en er offentlig. Læg aldrig TMDB-tokenet i en `VITE_*`-variabel, da V
 
 Workflowet `.github/workflows/deploy-pages.yml` publicerer `dist/` fra `main`.
 
-I repository-indstillingerne:
+Produktionskonfigurationen ligger i `.env.production`:
 
-```text
-Settings → Pages → Source: GitHub Actions
-```
+    VITE_BASE_PATH=/taxa/
+    VITE_TMDB_PROXY_URL=https://api.foo.dk/tmdb/index.php
 
-Når proxyen er klar, opret denne repositoryvariabel:
-
-```text
-Settings → Secrets and variables → Actions → Variables
-VITE_TMDB_PROXY_URL=https://api.foo.dk/tmdb/index.php
-```
-
-Workflowet bruger variablen ved build.
+`npm run build` indlæser automatisk `.env.production`.
 
 ## Tests
 
