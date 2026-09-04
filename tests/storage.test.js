@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   STORAGE_KEYS,
+  loadOrCreateProxyClientId,
   readTaxaCache,
   safeJsonParse,
   writeTaxaCache,
@@ -43,4 +44,14 @@ test("gammel cache markeres som ikke frisk", () => {
   );
 
   assert.equal(readTaxaCache("da-DK", 1000, storage).fresh, false);
+});
+
+
+test("anonymt proxy-klient-id oprettes og genbruges", () => {
+  const storage = memoryStorage();
+  const id = "12345678-1234-1234-1234-123456789012";
+
+  assert.equal(loadOrCreateProxyClientId(storage, () => id), id);
+  assert.equal(loadOrCreateProxyClientId(storage, () => "skal-ikke-bruges"), id);
+  assert.equal(storage.getItem(STORAGE_KEYS.proxyClientId), id);
 });

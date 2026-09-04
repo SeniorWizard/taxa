@@ -21,6 +21,7 @@ import {
   loadAuth,
   loadConnectionMode,
   loadLanguage,
+  loadOrCreateProxyClientId,
   readTaxaCache,
   saveAuth,
   saveConnectionMode,
@@ -38,6 +39,7 @@ export default function App() {
     loadConnectionMode(proxyConfigured),
   );
   const [activeSource, setActiveSource] = useState("");
+  const [proxyClientId] = useState(() => loadOrCreateProxyClientId());
 
   const [language, setLanguage] = useState(() => loadLanguage());
   const [mediaType, setMediaType] = useState("tv");
@@ -66,9 +68,10 @@ export default function App() {
         mode: connectionMode,
         auth,
         proxyBaseUrl: PROXY_BASE_URL,
+        proxyClientId,
         onSource: setActiveSource,
       }),
-    [auth, connectionMode],
+    [auth, connectionMode, proxyClientId],
   );
 
   const connectionReady = client.isConfigured();

@@ -6,6 +6,11 @@ coverage/
 .env
 .env.*
 !.env.example
+!.env.production
+
+backend/config/local.php
+backend/var/*
+!backend/var/.gitkeep
 
 .DS_Store
 *.log

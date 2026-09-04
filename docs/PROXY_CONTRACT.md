@@ -1,41 +1,76 @@
-# Forventet proxy-kontrakt
+# PHP-proxykontrakt
 
-Frontendens proxyunderstøttelse er forberedt, men PHP-backenden er ikke en del af denne migrering.
+Proxyen findes i `backend/` og returnerer TMDB-kompatibel JSON. Frontend kan bruge enten clean paths eller en direkte `index.php`-URL.
 
-Sæt senere:
+## Frontendkonfiguration
+
+Clean paths:
 
 ```env
 VITE_TMDB_PROXY_URL=https://api.foo.dk/tmdb
 ```
 
-Proxyen skal returnere TMDB-kompatibel JSON og tilbyde disse read-only endpoints:
+Uden rewrite:
+
+```env
+VITE_TMDB_PROXY_URL=https://api.foo.dk/tmdb/index.php
+```
 
 ## Søgning
 
 ```http
-GET /tmdb/search?media_type=tv&query=Taxa&language=da-DK&include_adult=false&page=1
+GET /search?media_type=tv&query=Taxa&language=da-DK&include_adult=false&page=1
 ```
 
-`media_type` må kun være `tv` eller `movie`.
+Tilladte værdier:
+
+- `media_type`: `tv` eller `movie`
+- `query`: 1–120 tegn
+- `language`: eksempelvis `da-DK`
+- `include_adult`: `true` eller `false`
+- `page`: 1–500
 
 ## Credits
 
 ```http
-GET /tmdb/credits?media_type=tv&id=51261&language=da-DK
+GET /credits?media_type=tv&id=51261&language=da-DK
 ```
 
-For TV forventes aggregate credits. For film forventes almindelige credits.
+TV bruger TMDB `/aggregate_credits`. Film bruger `/credits`.
 
 ## TAXA-reference
 
 ```http
-GET /tmdb/reference/taxa?language=da-DK
+GET /reference/taxa?language=da-DK
 ```
 
-Dette endpoint er oplagt til lang servercache.
+Referenceendpointet har lang servercache.
 
-## Fallback
+## Health
 
-I tilstanden `auto` prøver frontend proxyen først. Ved enhver proxy- eller netværksfejl bruges den lokalt gemte TMDB-nøgle, hvis en sådan findes. Aborterede requests falder ikke tilbage.
+```http
+GET /health
+```
 
-Proxyen skal implementere en fast allowlist og må ikke acceptere en vilkårlig TMDB-path eller URL fra klienten.
+Returnerer proxyversion, cachetype og auth-type, men aldrig tokenet.
+
+## Frontendfallback
+
+I tilstanden `auto` prøver frontend proxyen først. Ved netværksfejl, 401, 404, 429 eller 5xx bruges brugerens lokalt gemte TMDB-nøgle, hvis en sådan findes. Aborterede requests og almindelige 400-valideringsfejl falder ikke tilbage.
+
+## Headers
+
+Frontend sender:
+
+```http
+X-Taxa-Client-ID: <tilfældigt lokalt id>
+```
+
+Proxyen kan returnere:
+
+```http
+X-Taxa-Cache: HIT|MISS|REFRESH|STALE-...
+Age: <sekunder>
+Retry-After: <sekunder>
+X-Request-ID: <id>
+```

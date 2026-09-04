@@ -1,4 +1,4 @@
-const VERSION = "taxa-overlap-v1.1.0";
+const VERSION = "taxa-overlap-v1.2.0";
 const APP_CACHE = `${VERSION}-app`;
 const IMAGE_CACHE = `${VERSION}-images`;
 

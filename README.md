@@ -1,118 +1,141 @@
-# TAXA-overlap 1.1.0 – Vite-migrering
+# TAXA-overlap 1.2.0
 
-Denne branch migrerer version 1.0.0 til Vite uden at fjerne muligheden for at bruge brugerens egen TMDB-nøgle.
+React/Vite-PWA som finder skuespillere i en valgt film eller serie, der også medvirker i TAXA. Version 1.2 tilføjer en valgfri PHP-proxy, men bevarer direkte TMDB-adgang med brugerens egen nøgle.
 
-## 1. Krav på Mac
+## Frontend
 
-Projektet bruger Node.js 22 eller nyere.
-
-Med `nvm`:
+Krav: Node.js 22.12 eller nyere.
 
 ```bash
-nvm install 22
 nvm use
-```
-
-Kontrollér:
-
-```bash
-node --version
-npm --version
-```
-
-Intel-Mac, VS Code og Vim kræver ingen særlige tilpasninger.
-
-## 2. Første installation
-
-Fra projektmappen:
-
-```bash
 npm install
 npm test
 npm run dev
 ```
 
-Vite viser den lokale adresse i terminalen. Med standard-base åbnes appen normalt på:
+Lokal adresse er normalt:
 
 ```text
 http://localhost:5173/taxa/
 ```
 
-`npm install` opretter `package-lock.json`. Commit den fil, før GitHub Pages-workflowet køres, fordi workflowet bruger `npm ci`.
-
-## 3. Production build
+Production build:
 
 ```bash
 npm run build
 npm run preview
 ```
 
-De statiske deploymentfiler oprettes i `dist/`.
+Filerne oprettes i `dist/`.
 
-## 4. GitHub Pages
+## Forbindelsestyper
 
-`vite.config.js` har som standard:
+Appen understøtter tre tilstande, når proxyen er konfigureret:
 
-```text
-/taxa/
+- **Automatisk:** PHP-proxy først, egen nøgle som fallback.
+- **Kun proxy:** ingen direkte browserkald til TMDB.
+- **Direkte:** brugerens egen v3 API key eller v4 Bearer-token.
+
+Uden proxyvariabel fungerer appen fortsat som version 1.1 med direkte nøgle.
+
+## PHP-proxy
+
+Proxyen findes i `backend/` og indeholder:
+
+- fast allowlist af endpoints
+- server-side TMDB-token
+- SQLite-cache
+- global og klientbaseret token-bucket-rate limiting
+- stale cache ved 429, 5xx og netværksfejl
+- eksakt CORS-allowlist
+- anonymt klient-id til rate limiting
+- ingen Composer-afhængigheder
+
+Se:
+
+- `backend/README.md`
+- `docs/SYNOLOGY_DEPLOYMENT.md`
+- `docs/PROXY_CONTRACT.md`
+
+PHP-tests:
+
+```bash
+php backend/tests/run.php
 ```
 
-Det passer til den nuværende placering `https://git.foo.dk/taxa/`.
+Alle kontroller, når PHP er installeret lokalt:
 
-Workflowet `.github/workflows/deploy-pages.yml` bygger og publicerer `dist/`. Hvis branch-navnet, som skal udgives, ikke er `main`, ændres dette i workflowets `branches`-felt, eller migreringsbranchen merges først til `main`.
+```bash
+npm run check:all
+```
 
-I repository-indstillingerne skal Pages-kilden være **GitHub Actions**.
+## Frontendkonfiguration
 
-## 5. Direkte TMDB-nøgle og fremtidig proxy
+Kopiér ved lokal udvikling:
 
-Uden yderligere konfiguration virker appen som version 1.0: brugeren indtaster selv en v3 API key eller et v4 Bearer-token.
+```bash
+cp .env.example .env.local
+```
 
-Når PHP-proxyen senere findes, kopieres `.env.example` til `.env.production` og proxyadressen udfyldes:
+Clean-path proxy:
 
 ```env
 VITE_BASE_PATH=/taxa/
 VITE_TMDB_PROXY_URL=https://api.foo.dk/tmdb
 ```
 
-Derefter tilbyder appen tre forbindelsestyper:
+Synology uden rewrite:
 
-- Automatisk: proxy først, egen nøgle som fallback.
-- Kun proxy.
-- Direkte med egen nøgle.
+```env
+VITE_BASE_PATH=/taxa/
+VITE_TMDB_PROXY_URL=https://api.foo.dk/tmdb/index.php
+```
 
-Proxykontrakten er dokumenteret i `docs/PROXY_CONTRACT.md`.
+Proxy-URL'en er offentlig. Læg aldrig TMDB-tokenet i en `VITE_*`-variabel, da Vite indbygger den i browserens JavaScript.
 
-Vigtigt: Læg aldrig TMDB-tokenet i en variabel med navnet `VITE_*`. Vite indbygger disse værdier i browserens JavaScript, så de er offentlige.
+## GitHub Pages
 
-## 6. Test
+Workflowet `.github/workflows/deploy-pages.yml` publicerer `dist/` fra `main`.
+
+I repository-indstillingerne:
+
+```text
+Settings → Pages → Source: GitHub Actions
+```
+
+Når proxyen er klar, opret denne repositoryvariabel:
+
+```text
+Settings → Secrets and variables → Actions → Variables
+VITE_TMDB_PROXY_URL=https://api.foo.dk/tmdb/index.php
+```
+
+Workflowet bruger variablen ved build.
+
+## Tests
 
 ```bash
 npm test
 ```
 
-Testene dækker blandt andet:
+Frontendtestene dækker blandt andet:
 
-- sorteringsreglerne fra version 1.0
-- billing order `0`
-- match på person-id
-- API-key/Bearer-detektion
+- sorteringsregler
+- overlap på TMDB person-id
+- direkte v3/v4-auth
+- proxy-URL med og uden rewrite
 - proxy til direkte fallback
+- at 400-fejl ikke skjules af fallback
 - sprogafhængig TAXA-cache
-- ødelagt JSON i localStorage
+- anonymt proxy-klient-id
 
-## 7. PWA
+## PWA
 
 Manifest og service worker ligger i `public/`.
 
 Service workeren:
 
-- cacher appens egne statiske filer
+- cacher appens statiske filer
 - bruger network-first ved navigation
 - cacher TMDB-billeder med stale-while-revalidate
-- cacher ikke TMDB API-svar
-
-Efter en deployment kan en gammel service worker om nødvendigt fjernes i browserens udviklerværktøjer under **Application → Service Workers**.
-
-## 8. Midlertidigt ikon
-
-`public/icons/` indeholder et enkelt midlertidigt TAXA/krone-ikon, så PWA-installation kan testes. Det kan senere erstattes af det endelige logo uden kodeændringer, hvis filnavne og størrelser bevares.
+- cacher ikke TMDB API- eller proxy-svar
