@@ -21,6 +21,7 @@ return [
         // Origins indeholder kun protokol + værtsnavn, aldrig /taxa/.
         'allowed_origins' => [
             'https://git.foo.dk',
+            'http://localhost:4173',
             'http://localhost:5173',
         ],
     ],
