@@ -1,15 +1,40 @@
 import { Field, Label } from "./ui.jsx";
 
+function SearchStatusBar({ items }) {
+  return (
+    <div
+      className="mb-5 flex flex-wrap gap-2 text-xs"
+      aria-label="Aktive søgeindstillinger"
+    >
+      {items.map((item) => (
+        <span
+          key={item.key}
+          title={item.title}
+          className={`inline-flex items-center rounded-full px-2.5 py-1 ring-1 transition ${
+            item.active
+              ? "bg-yellow-400/10 text-yellow-200 ring-yellow-400/30"
+              : "bg-slate-900/50 text-slate-500 ring-slate-700"
+          }`}
+          aria-label={`${item.label}: ${item.active ? "til" : "fra"}. ${item.title}`}
+        >
+          <span className="sm:hidden">{item.shortLabel}</span>
+          <span className="hidden sm:inline">{item.label}</span>
+        </span>
+      ))}
+    </div>
+  );
+}
+
+
 export function SearchPanel({
   mediaType,
   onMediaTypeChange,
-  language,
-  onLanguageChange,
   query,
   onQueryChange,
   onSearch,
   searching,
   connectionReady,
+  statusItems,
 }) {
   function submit(event) {
     event.preventDefault();
@@ -17,55 +42,32 @@ export function SearchPanel({
   }
 
   return (
-    <form
-      onSubmit={submit}
-      className="rounded-2xl bg-slate-800/60 p-4 shadow md:col-span-2"
-    >
-      <div className="grid gap-3 md:grid-cols-3">
-        <Field>
-          <Label>Type</Label>
-          <div className="flex gap-2" role="group" aria-label="Medietype">
-            {["tv", "movie"].map((type) => (
-              <button
-                key={type}
-                type="button"
-                aria-pressed={mediaType === type}
-                onClick={() => onMediaTypeChange(type)}
-                className={`rounded-2xl px-3 py-2 ring-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-400 ${
-                  mediaType === type
-                    ? "bg-sky-500/10 ring-sky-500"
-                    : "bg-slate-900 ring-slate-700"
-                }`}
-              >
-                {type === "tv" ? "TV-serie" : "Film"}
-              </button>
-            ))}
-          </div>
-        </Field>
-
-        <Field>
-          <Label htmlFor="language">Sprog for titler</Label>
-          <select
-            id="language"
-            className="w-full rounded-xl bg-slate-900 px-3 py-2 outline-none ring-1 ring-slate-700 focus:ring-sky-500"
-            value={language}
-            onChange={(event) => onLanguageChange(event.target.value)}
+    <form onSubmit={submit} className="mb-6 rounded-3xl bg-slate-800/60 p-5 shadow md:p-6">
+      <SearchStatusBar items={statusItems} />
+      <div className="mb-5 flex flex-wrap items-center gap-2" role="group" aria-label="Medietype">
+        {["tv", "movie"].map((type) => (
+          <button
+            key={type}
+            type="button"
+            aria-pressed={mediaType === type}
+            onClick={() => onMediaTypeChange(type)}
+            className={`rounded-full px-4 py-2 text-sm font-medium ring-1 transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-400 ${
+              mediaType === type
+                ? "bg-yellow-400/15 text-yellow-200 ring-yellow-400/70"
+                : "bg-slate-900/60 text-slate-300 ring-slate-700 hover:ring-slate-500"
+            }`}
           >
-            <option value="da-DK">Dansk (da-DK)</option>
-            <option value="en-US">Engelsk (en-US)</option>
-            <option value="sv-SE">Svensk (sv-SE)</option>
-            <option value="nb-NO">Norsk (nb-NO)</option>
-            <option value="de-DE">Tysk (de-DE)</option>
-          </select>
-        </Field>
+            {type === "tv" ? "TV-serie" : "Film"}
+          </button>
+        ))}
       </div>
 
-      <Field>
+      <Field className="mb-0">
         <Label htmlFor="title-search">Søg titel</Label>
-        <div className="flex gap-2">
+        <div className="flex flex-col gap-2 sm:flex-row">
           <input
             id="title-search"
-            className="min-w-0 flex-1 rounded-xl bg-slate-900 px-3 py-2 outline-none ring-1 ring-slate-700 focus:ring-sky-500"
+            className="min-w-0 flex-1 rounded-2xl bg-slate-900 px-4 py-3 text-base outline-none ring-1 ring-slate-700 transition focus:ring-yellow-400/70"
             placeholder={
               mediaType === "tv"
                 ? "Søg efter TV-serie…"
@@ -73,10 +75,11 @@ export function SearchPanel({
             }
             value={query}
             onChange={(event) => onQueryChange(event.target.value)}
+            autoComplete="off"
           />
           <button
             type="submit"
-            className="rounded-2xl bg-slate-900 px-4 py-2 ring-1 ring-slate-700 hover:ring-sky-500 disabled:opacity-50"
+            className="rounded-2xl bg-yellow-400 px-5 py-3 font-semibold text-slate-950 transition hover:bg-yellow-300 disabled:cursor-not-allowed disabled:opacity-50"
             disabled={searching || !query.trim() || !connectionReady}
           >
             {searching ? "Søger…" : "Søg"}
@@ -84,7 +87,7 @@ export function SearchPanel({
         </div>
         {!connectionReady && (
           <p className="mt-2 text-xs text-amber-300">
-            Konfigurér en proxy eller din egen TMDB-nøgle før søgning.
+            Åbn indstillingerne og vælg en forbindelse før søgning.
           </p>
         )}
       </Field>

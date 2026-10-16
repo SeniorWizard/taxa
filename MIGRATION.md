@@ -1,32 +1,49 @@
-# Ændringer i 1.2.0
+# Migration notes - 1.3.0
 
-## PHP-proxy
+Version 1.3 er primært en UI/UX-milepæl. Backend og den eksisterende proxykontrakt er bevaret.
 
-Tilføjet i `backend/`:
+## Vigtigste ændringer
 
-- read-only endpoints for søgning, credits og TAXA-reference
-- server-side TMDB Bearer-token eller API key
-- SQLite-cache med forskellige TTL'er
-- stale fallback ved TMDB 429, 5xx og netværksfejl
-- token-bucket-rate limiting globalt og pr. anonym klient
-- CORS-allowlist og fast inputvalidering
-- health endpoint, installationskontrol og cacheoprydning
-- Synology-installationsvejledning
+- `SettingsPanel` er blevet et modal-/drawer-panel fra tandhjulsikonet.
+- Sprog og voksenflag er flyttet fra hovedsiden til indstillinger.
+- Proxy er standard, når `VITE_TMDB_PROXY_URL` findes.
+- Direkte TMDB-kald med egen nøgle er fortsat muligt.
+- Automatisk scroll/fokus efter søgning og titelvalg er tilføjet.
+- About-visning er bookmarkbar som `#about` uden ekstra routerafhængighed.
+- Overlapkort har kompakt fold-ud-element ved antal TAXA-episoder. Selve episodeindekset er ikke implementeret endnu.
+- Den eksisterende app-ikonfil genbruges foreløbigt.
 
-## Frontend
+## Cache og localStorage
 
-- Bevarer direkte TMDB-adgang med brugerens egen nøgle.
-- `auto` bruger proxy først og direkte adgang ved reel proxyfejl.
-- Almindelige 400-valideringsfejl falder ikke tilbage og skjules derfor ikke.
-- Proxybasen kan være enten en clean URL eller `index.php` uden rewrite.
-- Frontend sender et tilfældigt lokalt klient-id; backend gemmer kun en hash.
-- GitHub Actions læser den offentlige proxy-URL fra repositoryvariablen `VITE_TMDB_PROXY_URL`.
+Ny localStorage-nøgle:
 
-## Uændret
+```text
+tmdb_include_adult_v1
+```
 
-- TAXA-reference-id 51261
-- film- og TV-søgning
-- eksisterende sortering
-- lokal TAXA-cache
-- mulighed for v3 API key og v4 Bearer-token
-- GitHub Pages under `/taxa/`
+Den gamle cache- og authstruktur er bevaret.
+
+## Efter kopiering til eksisterende repository
+
+Kør:
+
+```bash
+npm install --package-lock-only
+npm test
+npm run build
+```
+
+Det synkroniserer `package-lock.json` med `package.json`-versionen 1.3.0.
+
+## TMDB-attribution
+
+Version 1.3 har en dedikeret About-visning med TMDB-attribution og link til `themoviedb.org`. TMDB kræver godkendt logo og den angivne attributionstekst i en About/Credits-sektion.
+
+
+### Smart søgning
+
+1.3 kan nu foreslå kontrollerede udvidelser ved 0 resultater. Brugerens indstillinger ændres ikke; hver udvidelse er et engangsforsøg. Adult-filteret kan aldrig lempes automatisk.
+
+## 1.3 statusbar
+
+Tilføjet en kompakt statuslinje under søgningen, som viser den aktuelle søgeprofil (forbindelse, sprog, adult, dansk, originaltitel og automatisk skift mellem TV/film). Inaktive valg vises dæmpet.
