@@ -6,6 +6,10 @@ export const STORAGE_KEYS = Object.freeze({
   auth: "tmdb_auth_v1",
   language: "tmdb_lang_v1",
   connectionMode: "tmdb_connection_mode_v1",
+  includeAdult: "tmdb_include_adult_v1",
+  autoAlternateSearch: "tmdb_auto_alternate_search_v1",
+  danishOnly: "tmdb_danish_only_v1",
+  originalTitleOnly: "tmdb_original_title_only_v1",
   proxyClientId: "taxa_proxy_client_id_v1",
 });
 
@@ -45,13 +49,60 @@ export function saveLanguage(language, storage = globalThis.localStorage) {
   storageOrThrow(storage).setItem(STORAGE_KEYS.language, language);
 }
 
+export function loadIncludeAdult(storage = globalThis.localStorage) {
+  return storageOrThrow(storage).getItem(STORAGE_KEYS.includeAdult) === "true";
+}
+
+export function loadAutoAlternateSearch(storage = globalThis.localStorage) {
+  const value = storageOrThrow(storage).getItem(
+    STORAGE_KEYS.autoAlternateSearch,
+  );
+  return value === null ? true : value === "true";
+}
+
+export function saveAutoAlternateSearch(value, storage = globalThis.localStorage) {
+  storageOrThrow(storage).setItem(
+    STORAGE_KEYS.autoAlternateSearch,
+    value ? "true" : "false",
+  );
+}
+
+export function loadDanishOnly(storage = globalThis.localStorage) {
+  return storageOrThrow(storage).getItem(STORAGE_KEYS.danishOnly) === "true";
+}
+
+export function saveDanishOnly(value, storage = globalThis.localStorage) {
+  storageOrThrow(storage).setItem(
+    STORAGE_KEYS.danishOnly,
+    value ? "true" : "false",
+  );
+}
+
+export function loadOriginalTitleOnly(storage = globalThis.localStorage) {
+  return (
+    storageOrThrow(storage).getItem(STORAGE_KEYS.originalTitleOnly) === "true"
+  );
+}
+
+export function saveOriginalTitleOnly(value, storage = globalThis.localStorage) {
+  storageOrThrow(storage).setItem(
+    STORAGE_KEYS.originalTitleOnly,
+    value ? "true" : "false",
+  );
+}
+
+export function saveIncludeAdult(includeAdult, storage = globalThis.localStorage) {
+  storageOrThrow(storage).setItem(
+    STORAGE_KEYS.includeAdult,
+    includeAdult ? "true" : "false",
+  );
+}
+
 export function loadConnectionMode(
   proxyConfigured,
   storage = globalThis.localStorage,
 ) {
-  const saved = storageOrThrow(storage).getItem(
-    STORAGE_KEYS.connectionMode,
-  );
+  const saved = storageOrThrow(storage).getItem(STORAGE_KEYS.connectionMode);
   const valid = Object.values(CONNECTION_MODES).includes(saved);
   if (valid) {
     if (!proxyConfigured && saved !== CONNECTION_MODES.DIRECT) {
@@ -59,15 +110,10 @@ export function loadConnectionMode(
     }
     return saved;
   }
-  return proxyConfigured
-    ? CONNECTION_MODES.AUTO
-    : CONNECTION_MODES.DIRECT;
+  return proxyConfigured ? CONNECTION_MODES.AUTO : CONNECTION_MODES.DIRECT;
 }
 
-export function saveConnectionMode(
-  mode,
-  storage = globalThis.localStorage,
-) {
+export function saveConnectionMode(mode, storage = globalThis.localStorage) {
   storageOrThrow(storage).setItem(STORAGE_KEYS.connectionMode, mode);
 }
 
@@ -142,4 +188,11 @@ export function clearTaxaCache(storage = globalThis.localStorage) {
 export function clearAppData(storage = globalThis.localStorage) {
   clearAuth(storage);
   clearTaxaCache(storage);
+  storageOrThrow(storage).removeItem(STORAGE_KEYS.includeAdult);
+  storageOrThrow(storage).removeItem(STORAGE_KEYS.autoAlternateSearch);
+  storageOrThrow(storage).removeItem(STORAGE_KEYS.danishOnly);
+  storageOrThrow(storage).removeItem(STORAGE_KEYS.originalTitleOnly);
+  storageOrThrow(storage).removeItem(STORAGE_KEYS.connectionMode);
+  storageOrThrow(storage).removeItem(STORAGE_KEYS.language);
+  storageOrThrow(storage).removeItem(STORAGE_KEYS.proxyClientId);
 }

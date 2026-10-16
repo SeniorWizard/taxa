@@ -1,6 +1,6 @@
-# TAXA-overlap 1.2.0
+# TAXA-overlap 1.3.0
 
-React/Vite-PWA som finder skuespillere i en valgt film eller serie, der også medvirker i TAXA. Version 1.2 tilføjer en valgfri PHP-proxy, men bevarer direkte TMDB-adgang med brugerens egen nøgle.
+React/Vite-PWA som finder skuespillere i en valgt film eller serie, der også medvirker i TAXA. Version 1.3 fokuserer på en renere brugerflade og samler tekniske indstillinger i et tandhjulspanel.
 
 ## Frontend
 
@@ -28,15 +28,36 @@ npm run preview
 
 Filerne oprettes i `dist/`.
 
+## Version 1.3 ændringer
+
+- Hovedskærmen er reduceret til søgning og resultater.
+- API-/proxy-konfiguration er flyttet til et tandhjulspanel.
+- TAXA-proxy er standard, når den er konfigureret.
+- Direkte TMDB-forbindelse med egen nøgle er bevaret som et tydeligt privat alternativ.
+- Egen nøgle bruges automatisk som fallback i standard proxy-tilstand.
+- Sprog og `include_adult` er flyttet til indstillinger.
+- Voksenindhold gemmes lokalt og er slået fra som standard.
+- Automatisk søgning i den anden medietype ved 0 filtrerede resultater.
+- Valgfrit filter for kun dansksprogede titler og søgning kun på originaltitel.
+- Automatisk scroll/fokus til søgeresultater og overlap.
+- TAXA-inspireret CSS-loader.
+- Kompakte overlapkort med fold-ud-element ved antal TAXA-episoder.
+- Ny statisk About-visning via `#about` med TMDB-attribution.
+- Den eksisterende app-ikonfil genbruges som midlertidigt logo; et mere præcist TAXA-neonsymbol kan udskiftes senere.
+
 ## Forbindelsestyper
 
-Appen understøtter tre tilstande, når proxyen er konfigureret:
+Når proxyen er konfigureret:
 
-- **Automatisk:** PHP-proxy først, egen nøgle som fallback.
-- **Kun proxy:** ingen direkte browserkald til TMDB.
-- **Direkte:** brugerens egen v3 API key eller v4 Bearer-token.
+- **TAXA-proxy:** standard. Proxy først, egen nøgle som automatisk fallback.
+- **Direkte til TMDB:** egen v3 API key eller v4 Bearer-token bruges direkte fra browseren.
+- **Kun proxy:** findes som en lille fejlsøgningsindstilling.
 
-Uden proxyvariabel fungerer appen fortsat som version 1.1 med direkte nøgle.
+Uden proxyvariabel fungerer appen fortsat med direkte nøgle.
+
+## Adult
+
+Indstillingen `Medtag voksenindhold` styrer TMDB's `include_adult`-parameter for søgning. Den er slået fra som standard og gemmes lokalt. TMDBs søgeendpoints understøtter `include_adult` som parameter.
 
 ## PHP-proxy
 
@@ -71,25 +92,14 @@ npm run check:all
 
 ## Frontendkonfiguration
 
-Kopiér ved lokal udvikling:
-
-```bash
-cp .env.example .env.local
-```
-
-Clean-path proxy:
-
-```env
-VITE_BASE_PATH=/taxa/
-VITE_TMDB_PROXY_URL=https://api.foo.dk/tmdb
-```
-
-Synology uden rewrite:
+Lokal udvikling kan bruge `.env.local`:
 
 ```env
 VITE_BASE_PATH=/taxa/
 VITE_TMDB_PROXY_URL=https://api.foo.dk/tmdb/index.php
 ```
+
+Produktionskonfigurationen bruger `.env.production` med samme offentlige proxy-URL.
 
 Proxy-URL'en er offentlig. Læg aldrig TMDB-tokenet i en `VITE_*`-variabel, da Vite indbygger den i browserens JavaScript.
 
@@ -97,12 +107,11 @@ Proxy-URL'en er offentlig. Læg aldrig TMDB-tokenet i en `VITE_*`-variabel, da V
 
 Workflowet `.github/workflows/deploy-pages.yml` publicerer `dist/` fra `main`.
 
-Produktionskonfigurationen ligger i `.env.production`:
+Repositoryets Pages-kilde skal være:
 
-    VITE_BASE_PATH=/taxa/
-    VITE_TMDB_PROXY_URL=https://api.foo.dk/tmdb/index.php
-
-`npm run build` indlæser automatisk `.env.production`.
+```text
+Settings → Pages → Source: GitHub Actions
+```
 
 ## Tests
 
@@ -120,6 +129,7 @@ Frontendtestene dækker blandt andet:
 - at 400-fejl ikke skjules af fallback
 - sprogafhængig TAXA-cache
 - anonymt proxy-klient-id
+- lokal persistence af voksenindhold
 
 ## PWA
 
