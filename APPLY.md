@@ -1,15 +1,19 @@
-# TAXA-overlap 1.3 statusbar patch
+# Apply
 
-Apply over the current 1.3 smart-search branch.
+Unpack this patch over the current TAXA-overlap 1.4 working tree.
 
 Changes:
-- Adds a compact search-status bar below the search box.
-- Shows connection mode, language, adult filter, Danish-only, original-title-only and automatic TV/film fallback.
-- Uses the user-facing wording "Via TAXA" instead of "TAXA-proxy".
-- Adds a regression test for the statusbar state.
+- transparent neon header/about logo
+- dark circular crown favicon for 32/64 px
+- service-worker cache bump to `taxa-overlap-v1.4-ui4`
+- updated graphics notes
 
-Run after applying:
+Then run:
 
-    npm test
-    npm run build
-    npm run preview
+```bash
+npm test
+npm run build
+npm run preview
+```
+
+Because the service worker caches graphics, a hard reload or reopening an installed PWA may be needed once after deployment.

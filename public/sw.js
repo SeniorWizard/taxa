@@ -1,4 +1,4 @@
-const VERSION = "taxa-overlap-v1.3.0";
+const VERSION = "taxa-overlap-v1.4-ui4";
 const APP_CACHE = `${VERSION}-app`;
 const IMAGE_CACHE = `${VERSION}-images`;
 
@@ -11,6 +11,13 @@ const APP_SHELL = [
   scopedUrl("manifest.webmanifest"),
   scopedUrl("icons/icon-192.png"),
   scopedUrl("icons/icon-512.png"),
+  scopedUrl("icons/icon-maskable-512.png"),
+  scopedUrl("icons/logo.png"),
+  scopedUrl("icons/crown.png"),
+  scopedUrl("icons/favicon-32.png"),
+  scopedUrl("icons/favicon-64.png"),
+  scopedUrl("icons/settings.png"),
+  scopedUrl("icons/info.png"),
 ];
 
 self.addEventListener("install", (event) => {

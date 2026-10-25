@@ -1,4 +1,5 @@
 import { APP_VERSION } from "../config.js";
+import { BackIcon } from "./icons.jsx";
 
 export function AboutPage({ onBack }) {
   return (
@@ -9,7 +10,7 @@ export function AboutPage({ onBack }) {
           onClick={onBack}
           className="rounded-full px-3 py-2 text-sm text-slate-300 ring-1 ring-slate-700 hover:ring-slate-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-yellow-300"
         >
-          ← Tilbage
+          <span className="inline-flex items-center gap-1.5"><BackIcon className="h-4 w-4" /> Tilbage</span>
         </button>
         <span className="text-xs text-slate-500">Version {APP_VERSION}</span>
       </div>
@@ -17,9 +18,9 @@ export function AboutPage({ onBack }) {
       <section className="rounded-3xl bg-slate-800/60 p-6 shadow md:p-8">
         <div className="mb-8 flex items-center gap-4">
           <img
-            src={`${import.meta.env.BASE_URL}icons/icon.svg`}
-            alt="TAXA-overlap"
-            className="h-16 w-16 rounded-2xl ring-1 ring-slate-700"
+            src={`${import.meta.env.BASE_URL}icons/logo.png`}
+            alt="TAXA"
+            className="h-20 w-auto max-w-[10rem] object-contain object-left"
           />
           <div>
             <h1 className="text-2xl font-semibold">TAXA-overlap</h1>
@@ -38,7 +39,7 @@ export function AboutPage({ onBack }) {
           <section>
             <h2 className="mb-2 text-base font-semibold text-slate-100">Forbindelse og privatliv</h2>
             <p>
-              Som standard bruges TAXA-proxyen. Du kan vælge direkte forbindelse til TMDB og gemme din egen nøgle lokalt i browseren. Proxyen returnerer ikke TMDB-nøglen til browseren.
+              Som standard går TMDB-kald via TAXA. Du kan vælge direkte forbindelse til TMDB og gemme din egen nøgle lokalt i browseren. TAXA-serveren returnerer ikke TMDB-nøglen til browseren.
             </p>
           </section>
 

@@ -1,3 +1,5 @@
+import { CrownIcon } from "./icons.jsx";
+
 export function Field({ children, className = "" }) {
   return <div className={`mb-4 ${className}`}>{children}</div>;
 }
@@ -39,7 +41,8 @@ export function Spinner({ label = "Arbejder…" }) {
   return (
     <div className="flex items-center gap-3 text-slate-300" role="status">
       <span className="taxa-loader" aria-hidden="true">
-        <span className="taxa-loader-wheel" />
+        <span className="taxa-loader-ring" />
+        <CrownIcon className="taxa-loader-crown h-5 w-5" />
       </span>
       <span>{label}</span>
     </div>

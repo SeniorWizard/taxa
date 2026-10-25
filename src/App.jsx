@@ -6,6 +6,7 @@ import { SearchPanel } from "./components/SearchPanel.jsx";
 import { SearchResults } from "./components/SearchResults.jsx";
 import { SettingsPanel } from "./components/SettingsPanel.jsx";
 import { IconButton } from "./components/ui.jsx";
+import { InfoIcon, SettingsIcon } from "./components/icons.jsx";
 import {
   APP_VERSION,
   PROXY_BASE_URL,
@@ -108,7 +109,6 @@ export default function App() {
     () =>
       buildSearchStatusItems({
         connectionMode,
-        language,
         includeAdult,
         danishOnly,
         originalTitleOnly,
@@ -116,7 +116,6 @@ export default function App() {
       }),
     [
       connectionMode,
-      language,
       includeAdult,
       danishOnly,
       originalTitleOnly,
@@ -613,31 +612,22 @@ export default function App() {
             aria-label="Gå til forsiden"
           >
             <img
-              src={`${import.meta.env.BASE_URL}icons/icon.svg`}
-              alt=""
-              className="h-12 w-12 rounded-xl ring-1 ring-slate-700 transition group-hover:ring-yellow-400/50"
+              src={`${import.meta.env.BASE_URL}icons/logo.png`}
+              alt="TAXA"
+              className="h-13 w-auto max-w-[7.75rem] object-contain object-left transition group-hover:brightness-110 md:h-14 md:max-w-[8.5rem]"
             />
-            <span className="min-w-0">
-              <span className="block text-lg font-semibold tracking-tight md:text-xl">TAXA-overlap</span>
+            <span className="hidden min-w-0 sm:block">
+              <span className="block text-lg font-semibold tracking-tight md:text-xl">overlap</span>
               <span className="block truncate text-xs text-slate-400">Find TAXA-skuespillere i film og serier</span>
             </span>
           </button>
 
           <div className="flex flex-shrink-0 items-center gap-2">
-            <div className="hidden text-right text-xs text-slate-500 sm:block">
-              {activeSource === "direct"
-                ? "Direkte TMDB"
-                : activeSource === "direct-fallback"
-                  ? "Direkte fallback"
-                  : proxyConfigured
-                    ? "Via TAXA"
-                    : "TMDB"}
-            </div>
-            <IconButton label="Om TAXA-overlap" onClick={showAbout}>
-              <span aria-hidden="true" className="text-base font-semibold">i</span>
+            <IconButton label="Om TAXA-overlap" onClick={showAbout} className="brand-icon-button">
+              <InfoIcon className="h-8 w-8" />
             </IconButton>
-            <IconButton label="Indstillinger" onClick={openSettings}>
-              <span aria-hidden="true" className="text-xl">⚙</span>
+            <IconButton label="Indstillinger" onClick={openSettings} className="brand-icon-button">
+              <SettingsIcon className="h-8 w-8" />
             </IconButton>
           </div>
         </header>

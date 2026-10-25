@@ -98,34 +98,36 @@ export function buildSmartSearchOptions({
 
 export function buildSearchStatusItems({
   connectionMode,
-  language,
   includeAdult,
   danishOnly,
   originalTitleOnly,
   autoAlternateSearch,
 }) {
+  const direct = connectionMode === "direct";
+
   return [
     {
-      key: "connection",
-      label: connectionMode === "direct" ? "Direkte til TMDB" : "Via TAXA",
-      shortLabel: connectionMode === "direct" ? "Direkte" : "Via TAXA",
-      active: true,
-      title:
-        connectionMode === "direct"
-          ? "TMDB-kald går direkte fra denne browser."
-          : "TMDB-kald går via TAXA-serveren.",
+      key: "direct",
+      icon: "direct",
+      label: "Direkte til TMDB",
+      active: direct,
+      title: direct
+        ? "Direkte til TMDB er slået til. Kald sendes fra denne browser."
+        : "Direkte til TMDB er slået fra. Via TAXA bruges som standard.",
     },
     {
-      key: "language",
-      label: language || "Sprog",
-      shortLabel: language?.split("-")[0]?.toUpperCase() || "Sprog",
-      active: true,
-      title: `Søgesprog: ${language || "ukendt"}.`,
+      key: "danish",
+      icon: "danish",
+      label: "Kun dansksprogede titler",
+      active: Boolean(danishOnly),
+      title: danishOnly
+        ? "Kun titler med dansk originalt sprog vises."
+        : "Titler på alle originale sprog kan vises.",
     },
     {
       key: "adult",
-      label: "Adult",
-      shortLabel: "18+",
+      icon: "adult",
+      label: "Voksenindhold",
       active: Boolean(includeAdult),
       title: includeAdult
         ? "Voksenindhold medtages i søgningen."
@@ -133,26 +135,17 @@ export function buildSearchStatusItems({
     },
     {
       key: "original-title",
-      label: "Originaltitel",
-      shortLabel: "Original",
+      icon: "original-title",
+      label: "Kun originaltitel",
       active: Boolean(originalTitleOnly),
       title: originalTitleOnly
         ? "Resultater skal matche originaltitel/originalnavn."
         : "Oversatte og lokaliserede titler kan matches.",
     },
     {
-      key: "danish",
-      label: "Dansk",
-      shortLabel: "DA",
-      active: Boolean(danishOnly),
-      title: danishOnly
-        ? "Kun titler med dansk originalt sprog vises."
-        : "Alle originale sprog kan vises.",
-    },
-    {
       key: "alternate-type",
-      label: "Anden type",
-      shortLabel: "TV/FILM",
+      icon: "alternate-type",
+      label: "Automatisk TV/film-skift",
       active: Boolean(autoAlternateSearch),
       title: autoAlternateSearch
         ? "Ved 0 resultater prøves den anden medietype automatisk."
