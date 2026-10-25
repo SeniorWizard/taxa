@@ -146,9 +146,9 @@ test("statusbar viser søgeprofilens aktive og inaktive valg", () => {
 
   const byKey = Object.fromEntries(items.map((item) => [item.key, item]));
 
-  assert.equal(byKey.connection.active, true);
-  assert.equal(byKey.connection.shortLabel, "Via TAXA");
-  assert.equal(byKey.language.shortLabel, "DA");
+  assert.equal(items.length, 5);
+  assert.equal(byKey.direct.active, false);
+  assert.equal(byKey.direct.icon, "direct");
   assert.equal(byKey.danish.active, true);
   assert.equal(byKey["original-title"].active, false);
   assert.equal(byKey.adult.active, false);

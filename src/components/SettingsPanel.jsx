@@ -4,6 +4,17 @@ import {
   maskAuth,
 } from "../api/tmdbClient.js";
 import { Pill } from "./ui.jsx";
+import {
+  AdultIcon,
+  AutoTypeIcon,
+  CloseIcon,
+  CrownIcon,
+  DanishFlagIcon,
+  DirectTmdbIcon,
+  GlobeIcon,
+  OriginalTitleIcon,
+  SettingsIcon,
+} from "./icons.jsx";
 
 export function SettingsPanel({
   open,
@@ -40,7 +51,6 @@ export function SettingsPanel({
 
   const authType = detectAuthType(auth);
   const unsaved = Boolean(auth.trim()) && auth.trim() !== savedAuth;
-  const proxyMode = connectionMode === CONNECTION_MODES.AUTO || connectionMode === CONNECTION_MODES.PROXY;
 
   const sourceLabel = {
     proxy: "Via TAXA",
@@ -64,16 +74,23 @@ export function SettingsPanel({
     >
       <aside className="max-h-[calc(100vh-1.5rem)] w-full max-w-md overflow-y-auto rounded-3xl bg-slate-900 p-5 shadow-2xl ring-1 ring-slate-700 md:mt-2 md:p-6">
         <div className="mb-6 flex items-center justify-between gap-4">
-          <div>
-            <h2 id="settings-title" className="text-xl font-semibold">Indstillinger</h2>
-            <p className="mt-1 text-xs text-slate-400">Forbindelse, sprog og lokale data</p>
+          <div className="flex items-center gap-3">
+            <span className="brand-symbol-tile inline-flex h-10 w-10 items-center justify-center rounded-xl">
+              <SettingsIcon className="h-8 w-8" />
+            </span>
+            <div>
+              <h2 id="settings-title" className="text-xl font-semibold">Indstillinger</h2>
+              <p className="mt-1 text-xs text-slate-400">Forbindelse, sprog og lokale data</p>
+            </div>
           </div>
           <button
             type="button"
-            className="rounded-full px-3 py-2 text-sm text-slate-300 ring-1 ring-slate-700 hover:ring-slate-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-yellow-300"
+            aria-label="Luk indstillinger"
+            title="Luk"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-full text-slate-300 ring-1 ring-slate-700 hover:ring-slate-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-yellow-300"
             onClick={onClose}
           >
-            Luk
+            <CloseIcon />
           </button>
         </div>
 
@@ -91,13 +108,20 @@ export function SettingsPanel({
                     : "bg-slate-800/60 ring-slate-700 hover:ring-slate-500"
                 }`}
               >
-                <div className="flex items-center justify-between gap-3">
-                  <span className="font-medium">Via TAXA</span>
-                  <Pill>Anbefalet</Pill>
+                <div className="flex items-start gap-3">
+                  <span className="mt-0.5 inline-flex h-9 w-9 flex-none items-center justify-center rounded-xl bg-yellow-400/10 text-yellow-300 ring-1 ring-yellow-400/30">
+                    <CrownIcon className="h-7 w-7" />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="font-medium">Via TAXA</span>
+                      <Pill>Anbefalet</Pill>
+                    </div>
+                    <p className="mt-1 text-xs leading-5 text-slate-400">
+                      TMDB-kald går via TAXA-serveren. Din egen nøgle kan bruges som fallback, hvis forbindelsen er utilgængelig.
+                    </p>
+                  </div>
                 </div>
-                <p className="mt-1 text-xs leading-5 text-slate-400">
-                  Kald går via proxyen. Din egen nøgle kan bruges automatisk som fallback, hvis proxyen er utilgængelig.
-                </p>
               </button>
             )}
 
@@ -111,13 +135,20 @@ export function SettingsPanel({
                   : "bg-slate-800/60 ring-slate-700 hover:ring-slate-500"
               }`}
             >
-              <div className="flex items-center justify-between gap-3">
-                <span className="font-medium">Direkte til TMDB</span>
-                <Pill>Privat</Pill>
+              <div className="flex items-start gap-3">
+                <span className="mt-0.5 inline-flex h-9 w-9 flex-none items-center justify-center rounded-xl bg-slate-950/60 text-slate-300 ring-1 ring-slate-700">
+                  <DirectTmdbIcon />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="font-medium">Direkte til TMDB</span>
+                    <Pill>Privat</Pill>
+                  </div>
+                  <p className="mt-1 text-xs leading-5 text-slate-400">
+                    Brug din egen TMDB-nøgle og send kald direkte fra denne browser til TMDB.
+                  </p>
+                </div>
               </div>
-              <p className="mt-1 text-xs leading-5 text-slate-400">
-                Brug din egen TMDB-nøgle og send kald direkte fra denne browser til TMDB.
-              </p>
             </button>
 
             {proxyConfigured && (
@@ -197,7 +228,7 @@ export function SettingsPanel({
         <section className="mb-6">
           <h3 className="mb-2 text-sm font-semibold text-slate-200">Søgning</h3>
 
-          <label htmlFor="settings-language" className="mb-1 block text-xs text-slate-400">Sprog</label>
+          <label htmlFor="settings-language" className="mb-1 flex items-center gap-2 text-xs text-slate-400"><GlobeIcon className="h-4 w-4" /> Sprog</label>
           <select
             id="settings-language"
             className="mb-4 w-full rounded-xl bg-slate-950 px-3 py-2 text-sm outline-none ring-1 ring-slate-700 focus:ring-yellow-400/70"
@@ -219,6 +250,7 @@ export function SettingsPanel({
                 checked={includeAdult}
                 onChange={(event) => onIncludeAdultChange(event.target.checked)}
               />
+              <span className="mt-0.5 text-slate-400"><AdultIcon className="h-5 w-5" /></span>
               <span>
                 <span className="block text-sm font-medium">Medtag voksenindhold</span>
                 <span className="mt-1 block text-xs leading-5 text-slate-400">
@@ -234,6 +266,7 @@ export function SettingsPanel({
                 checked={autoAlternateSearch}
                 onChange={(event) => onAutoAlternateSearchChange(event.target.checked)}
               />
+              <span className="mt-0.5 text-slate-400"><AutoTypeIcon className="h-5 w-5" /></span>
               <span>
                 <span className="block text-sm font-medium">Prøv automatisk den anden type</span>
                 <span className="mt-1 block text-xs leading-5 text-slate-400">
@@ -249,6 +282,7 @@ export function SettingsPanel({
                 checked={danishOnly}
                 onChange={(event) => onDanishOnlyChange(event.target.checked)}
               />
+              <span className="mt-0.5"><DanishFlagIcon className="h-5 w-5" /></span>
               <span>
                 <span className="block text-sm font-medium">Vis kun dansksprogede titler</span>
                 <span className="mt-1 block text-xs leading-5 text-slate-400">
@@ -264,6 +298,7 @@ export function SettingsPanel({
                 checked={originalTitleOnly}
                 onChange={(event) => onOriginalTitleOnlyChange(event.target.checked)}
               />
+              <span className="mt-0.5 text-slate-400"><OriginalTitleIcon className="h-5 w-5" /></span>
               <span>
                 <span className="block text-sm font-medium">Søg kun på originaltitel</span>
                 <span className="mt-1 block text-xs leading-5 text-slate-400">
