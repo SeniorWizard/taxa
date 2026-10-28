@@ -4,8 +4,10 @@ import {
   buildSmartSearchOptions,
   buildSearchStatusItems,
   filterSearchResults,
+  mergeUniqueSearchResults,
   otherMediaType,
   searchTitleMatchesOriginal,
+  shouldContinueFilteredSearch,
 } from "../src/domain/search.js";
 
 test("skifter korrekt mellem TV og film", () => {
@@ -153,4 +155,73 @@ test("statusbar viser søgeprofilens aktive og inaktive valg", () => {
   assert.equal(byKey["original-title"].active, false);
   assert.equal(byKey.adult.active, false);
   assert.equal(byKey["alternate-type"].active, true);
+});
+
+
+test("søgeresultater fra flere sider flettes uden dubletter", () => {
+  const merged = mergeUniqueSearchResults(
+    [{ id: 1, title: "A" }, { id: 2, title: "B" }],
+    [{ id: 2, title: "B igen" }, { id: 3, title: "C" }],
+  );
+
+  assert.deepEqual(merged.map((item) => item.id), [1, 2, 3]);
+});
+
+
+test("filtreret søgning fylder op før den stopper", () => {
+  assert.equal(
+    shouldContinueFilteredSearch({
+      filteredCount: 4,
+      targetCount: 20,
+      page: 1,
+      totalPages: 8,
+      scannedPages: 1,
+    }),
+    true,
+  );
+  assert.equal(
+    shouldContinueFilteredSearch({
+      filteredCount: 20,
+      targetCount: 20,
+      page: 4,
+      totalPages: 8,
+      scannedPages: 4,
+    }),
+    false,
+  );
+  assert.equal(
+    shouldContinueFilteredSearch({
+      filteredCount: 4,
+      targetCount: 20,
+      page: 8,
+      totalPages: 8,
+      scannedPages: 8,
+    }),
+    false,
+  );
+});
+
+test("nul filtrerede hits har en sikkerhedsgrænse", () => {
+  assert.equal(
+    shouldContinueFilteredSearch({
+      filteredCount: 0,
+      targetCount: 20,
+      page: 2,
+      totalPages: 100,
+      scannedPages: 2,
+      zeroHitPageLimit: 3,
+    }),
+    true,
+  );
+  assert.equal(
+    shouldContinueFilteredSearch({
+      filteredCount: 0,
+      targetCount: 20,
+      page: 3,
+      totalPages: 100,
+      scannedPages: 3,
+      zeroHitPageLimit: 3,
+    }),
+    false,
+  );
 });

@@ -4,7 +4,7 @@ export const STORAGE_KEYS = Object.freeze({
   taxa: "tmdb_taxa_aggregate_credits_v1",
   taxaMeta: "tmdb_taxa_aggregate_meta_v1",
   auth: "tmdb_auth_v1",
-  language: "tmdb_lang_v1",
+  language: "tmdb_lang_v1", // legacy: ryddes stadig ved nulstilling
   connectionMode: "tmdb_connection_mode_v1",
   includeAdult: "tmdb_include_adult_v1",
   autoAlternateSearch: "tmdb_auto_alternate_search_v1",
@@ -39,14 +39,6 @@ export function saveAuth(auth, storage = globalThis.localStorage) {
 
 export function clearAuth(storage = globalThis.localStorage) {
   storageOrThrow(storage).removeItem(STORAGE_KEYS.auth);
-}
-
-export function loadLanguage(storage = globalThis.localStorage) {
-  return storageOrThrow(storage).getItem(STORAGE_KEYS.language) || "da-DK";
-}
-
-export function saveLanguage(language, storage = globalThis.localStorage) {
-  storageOrThrow(storage).setItem(STORAGE_KEYS.language, language);
 }
 
 export function loadIncludeAdult(storage = globalThis.localStorage) {

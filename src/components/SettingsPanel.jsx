@@ -3,6 +3,7 @@ import {
   detectAuthType,
   maskAuth,
 } from "../api/tmdbClient.js";
+import { APP_VERSION } from "../config.js";
 import { Pill } from "./ui.jsx";
 import {
   AdultIcon,
@@ -11,7 +12,6 @@ import {
   CrownIcon,
   DanishFlagIcon,
   DirectTmdbIcon,
-  GlobeIcon,
   OriginalTitleIcon,
   SettingsIcon,
 } from "./icons.jsx";
@@ -29,8 +29,6 @@ export function SettingsPanel({
   connectionMode,
   onConnectionModeChange,
   proxyConfigured,
-  language,
-  onLanguageChange,
   includeAdult,
   onIncludeAdultChange,
   autoAlternateSearch,
@@ -80,7 +78,7 @@ export function SettingsPanel({
             </span>
             <div>
               <h2 id="settings-title" className="text-xl font-semibold">Indstillinger</h2>
-              <p className="mt-1 text-xs text-slate-400">Forbindelse, sprog og lokale data</p>
+              <p className="mt-1 text-xs text-slate-400">Forbindelse, søgning og lokale data</p>
             </div>
           </div>
           <button
@@ -228,20 +226,6 @@ export function SettingsPanel({
         <section className="mb-6">
           <h3 className="mb-2 text-sm font-semibold text-slate-200">Søgning</h3>
 
-          <label htmlFor="settings-language" className="mb-1 flex items-center gap-2 text-xs text-slate-400"><GlobeIcon className="h-4 w-4" /> Sprog</label>
-          <select
-            id="settings-language"
-            className="mb-4 w-full rounded-xl bg-slate-950 px-3 py-2 text-sm outline-none ring-1 ring-slate-700 focus:ring-yellow-400/70"
-            value={language}
-            onChange={(event) => onLanguageChange(event.target.value)}
-          >
-            <option value="da-DK">Dansk</option>
-            <option value="en-US">Engelsk</option>
-            <option value="sv-SE">Svensk</option>
-            <option value="nb-NO">Norsk</option>
-            <option value="de-DE">Tysk</option>
-          </select>
-
           <div className="grid gap-2">
             <label className="flex cursor-pointer items-start gap-3 rounded-2xl bg-slate-800/50 p-3 ring-1 ring-slate-700">
               <input
@@ -336,10 +320,10 @@ export function SettingsPanel({
         </section>
 
         <p className="text-xs leading-5 text-slate-500">
-          Proxyen kan se din netværksforbindelse til serveren. Direkte tilstand sender TMDB-kald fra browseren. Klient-id bruges kun til begrænset rate limiting på proxyen.
+          Ved Via TAXA går TMDB-kald gennem TAXA-serveren. Direkte tilstand sender TMDB-kald fra browseren. Klient-id bruges kun til begrænset rate limiting.
         </p>
 
-        <p className="mt-4 text-xs text-slate-500">Version 1.3.0</p>
+        <p className="mt-4 text-xs text-slate-500">Version {APP_VERSION}</p>
       </aside>
     </div>
   );

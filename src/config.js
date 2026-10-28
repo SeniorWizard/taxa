@@ -1,4 +1,5 @@
-export const APP_VERSION = "1.3.0";
+export const APP_VERSION = "1.4.1";
+export const DEFAULT_LANGUAGE = "da-DK";
 export const TAXA_TV_ID = 51261;
 export const TMDB_API_BASE = "https://api.themoviedb.org/3";
 export const TMDB_IMAGE_BASE = "https://image.tmdb.org/t/p";

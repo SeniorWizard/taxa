@@ -92,3 +92,43 @@ export function StatusGlyph({ kind, language, className = "h-5 w-5" }) {
   if (kind === "alternate-type") return <AutoTypeIcon className={className}/>;
   return null;
 }
+
+export function SelectedTitleSortIcon({ className = "h-5 w-5" }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
+      <rect x="4" y="5" width="12" height="14" rx="2" {...common}/>
+      <path d="m14.5 15.5 2.2 2.2 3.8-4.4" {...common}/>
+      <path d="M7.5 9h5M7.5 12h4" {...common}/>
+    </svg>
+  );
+}
+
+export function AlphabeticalIcon({ className = "h-5 w-5" }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
+      <path d="M4 17 8 7l4 10M5.4 13.5h5.2" {...common}/>
+      <path d="M14.5 7h5l-5 10h5" {...common}/>
+    </svg>
+  );
+}
+
+
+export function ChevronDownIcon({ className = "h-5 w-5" }) {
+  return <svg viewBox="0 0 24 24" className={className} aria-hidden="true"><path d="m5 9 7 7 7-7" {...common}/></svg>;
+}
+
+export function TrashIcon({ className = "h-5 w-5" }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
+      <path d="M4.5 7h15M9 4h6l1 3H8l1-3ZM7 7l.8 13h8.4L17 7M10 10v6M14 10v6" {...common}/>
+    </svg>
+  );
+}
+
+export function ChevronLeftIcon({ className = "h-5 w-5" }) {
+  return <svg viewBox="0 0 24 24" className={className} aria-hidden="true"><path d="m14.5 5-7 7 7 7" {...common}/></svg>;
+}
+
+export function ChevronRightIcon({ className = "h-5 w-5" }) {
+  return <svg viewBox="0 0 24 24" className={className} aria-hidden="true"><path d="m9.5 5 7 7-7 7" {...common}/></svg>;
+}

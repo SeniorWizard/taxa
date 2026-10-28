@@ -1,4 +1,4 @@
-# Migration notes - 1.3.0
+# Migration notes - 1.4.0
 
 Version 1.3 er primært en UI/UX-milepæl. Backend og den eksisterende proxykontrakt er bevaret.
 
@@ -33,7 +33,7 @@ npm test
 npm run build
 ```
 
-Det synkroniserer `package-lock.json` med `package.json`-versionen 1.3.0.
+Det synkroniserer `package-lock.json` med `package.json`-versionen 1.4.0.
 
 ## TMDB-attribution
 
@@ -47,3 +47,12 @@ Version 1.3 har en dedikeret About-visning med TMDB-attribution og link til `the
 ## 1.3 statusbar
 
 Tilføjet en kompakt statuslinje under søgningen, som viser den aktuelle søgeprofil (forbindelse, sprog, adult, dansk, originaltitel og automatisk skift mellem TV/film). Inaktive valg vises dæmpet.
+
+
+## UI/UX-opdatering i 1.4.0
+
+- Søgesprog er ikke længere en brugerindstilling; TMDB metadata hentes altid med `da-DK`.
+- Sortering vælges med tre ikonknapper i stedet for en dropdown.
+- Titelresultater skjules efter valg; **Skift titel** viser den eksisterende liste igen.
+- **Vis flere** henter næste TMDB-sider uden at ændre søgekriterierne.
+- Overlaplisten pagineres lokalt med 12 personer pr. side.
