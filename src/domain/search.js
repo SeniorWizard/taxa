@@ -153,3 +153,34 @@ export function buildSearchStatusItems({
     },
   ];
 }
+
+export function mergeUniqueSearchResults(...lists) {
+  const seen = new Set();
+  const merged = [];
+
+  for (const list of lists) {
+    for (const item of Array.isArray(list) ? list : []) {
+      const key = item?.id;
+      if (key === undefined || key === null || seen.has(key)) continue;
+      seen.add(key);
+      merged.push(item);
+    }
+  }
+
+  return merged;
+}
+
+
+export function shouldContinueFilteredSearch({
+  filteredCount,
+  targetCount = 20,
+  page,
+  totalPages,
+  scannedPages = 1,
+  zeroHitPageLimit = 3,
+}) {
+  if (page >= totalPages) return false;
+  if (filteredCount >= targetCount) return false;
+  if (filteredCount === 0 && scannedPages >= zeroHitPageLimit) return false;
+  return true;
+}

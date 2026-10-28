@@ -1,6 +1,6 @@
-# TAXA-overlap 1.3.0
+# TAXA-overlap 1.4.0
 
-React/Vite-PWA som finder skuespillere i en valgt film eller serie, der også medvirker i TAXA. Version 1.3 fokuserer på en renere brugerflade og samler tekniske indstillinger i et tandhjulspanel.
+React/Vite-PWA som finder skuespillere i en valgt film eller serie, der også medvirker i TAXA. Version 1.4 fokuserer på et kortere mobilflow, visuel TAXA-identitet og mere kompakte kontroller.
 
 ## Frontend
 
@@ -28,22 +28,33 @@ npm run preview
 
 Filerne oprettes i `dist/`.
 
-## Version 1.3 ændringer
+## Version 1.4.1 ændringer
 
-- Hovedskærmen er reduceret til søgning og resultater.
-- API-/proxy-konfiguration er flyttet til et tandhjulspanel.
-- TAXA-proxy er standard, når den er konfigureret.
-- Direkte TMDB-forbindelse med egen nøgle er bevaret som et tydeligt privat alternativ.
-- Egen nøgle bruges automatisk som fallback i standard proxy-tilstand.
-- Sprog og `include_adult` er flyttet til indstillinger.
-- Voksenindhold gemmes lokalt og er slået fra som standard.
-- Automatisk søgning i den anden medietype ved 0 filtrerede resultater.
-- Valgfrit filter for kun dansksprogede titler og søgning kun på originaltitel.
-- Automatisk scroll/fokus til søgeresultater og overlap.
-- TAXA-inspireret CSS-loader.
-- Kompakte overlapkort med fold-ud-element ved antal TAXA-episoder.
-- Ny statisk About-visning via `#about` med TMDB-attribution.
-- Den eksisterende app-ikonfil genbruges som midlertidigt logo; et mere præcist TAXA-neonsymbol kan udskiftes senere.
+- tilføjet paginering med aktive filtre
+- søgeresultater kollapser efter titelvalg
+- ikonbaseret skift titel / ryd søgning
+- ikonbaseret sortering
+- lokal paginering af skuespillere
+- swipe-navigation på mobil
+- fast dansk metadata-sprog
+- diverse flow- og mobilforbedringer
+
+## Version 1.4 ændringer
+
+- TAXA-inspireret neonbranding, appikon, favicon og grafiske kontrolikoner.
+- Hovedskærmen er reduceret til søgning og resultater; tekniske valg ligger bag tandhjulet.
+- **Via TAXA** er standard, mens direkte TMDB med egen nøgle er et valgfrit alternativ.
+- Statusikoner viser de aktive søgekriterier uden at fylde hovedskærmen med tekst.
+- Voksenindhold, automatisk TV/film-skift, kun dansk og originaltitel kan styres i indstillinger.
+- Smart Search kan ved 0 hits foreslå en kontrolleret lempelse af bløde kriterier; adult-filteret lempes aldrig automatisk.
+- TMDB-metadata hentes fast på dansk (`da-DK`); sprogvælgeren er fjernet fra UI'et.
+- Ved lokale filterhits undersøges op til tre TMDB-sider før søgningen erklæres tom.
+- **Vis flere** henter yderligere TMDB-sider uden at ændre søgekriterierne.
+- Søgeresultater kollapser efter titelvalg; **Skift titel** viser den eksisterende liste igen.
+- Valgt titel vises sammen med overlap-resultatet og har genvej til **Ny søgning**.
+- Sortering vælges med tre ikonknapper: TAXA, valgt titel og A–Z.
+- Overlap pagineres lokalt 12 ad gangen med synlige knapper og swipe som ekstra touch-genvej.
+- About-visningen via `#about` indeholder TMDB-attribution.
 
 ## Forbindelsestyper
 
@@ -141,3 +152,4 @@ Service workeren:
 - bruger network-first ved navigation
 - cacher TMDB-billeder med stale-while-revalidate
 - cacher ikke TMDB API- eller proxy-svar
+

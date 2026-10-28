@@ -189,3 +189,20 @@ export function tmdbImageUrl(path, size = "w185") {
   if (!path) return null;
   return `${TMDB_IMAGE_BASE}/${size}${path}`;
 }
+
+
+export function paginateItems(items, page = 1, pageSize = 12) {
+  const source = Array.isArray(items) ? items : [];
+  const size = Math.max(1, Number(pageSize) || 12);
+  const totalPages = Math.max(1, Math.ceil(source.length / size));
+  const currentPage = Math.min(totalPages, Math.max(1, Number(page) || 1));
+  const start = (currentPage - 1) * size;
+
+  return {
+    items: source.slice(start, start + size),
+    page: currentPage,
+    pageSize: size,
+    totalPages,
+    totalItems: source.length,
+  };
+}

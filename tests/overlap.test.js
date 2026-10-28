@@ -4,6 +4,7 @@ import {
   buildReferenceMap,
   compareMatches,
   findOverlaps,
+  paginateItems,
   tmdbImageUrl,
   yearFrom,
 } from "../src/domain/overlap.js";
@@ -47,7 +48,7 @@ test("TV sorterer som version 1.0: reference, valgt serie, navn", () => {
   );
 });
 
-test("film respekterer billing order 0", () => {
+test("film respekterer første placering blandt medvirkende", () => {
   const input = [
     { name: "B", referenceEpisodes: 3, hereOrder: 1 },
     { name: "A", referenceEpisodes: 3, hereOrder: 0 },
@@ -93,4 +94,16 @@ test("billed-URL og årstal normaliseres", () => {
   assert.equal(tmdbImageUrl(null), null);
   assert.equal(yearFrom({ first_air_date: "1997-10-10" }, "tv"), "1997");
   assert.equal(yearFrom({ release_date: "1972-01-01" }, "movie"), "1972");
+});
+
+
+test("lokal overlap-paginering deler listen i stabile sider", () => {
+  const source = Array.from({ length: 25 }, (_, index) => ({ id: index + 1 }));
+  const first = paginateItems(source, 1, 12);
+  const third = paginateItems(source, 3, 12);
+
+  assert.equal(first.totalPages, 3);
+  assert.equal(first.items.length, 12);
+  assert.deepEqual(third.items.map((item) => item.id), [25]);
+  assert.equal(third.page, 3);
 });

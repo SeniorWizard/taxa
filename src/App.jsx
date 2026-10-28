@@ -9,6 +9,7 @@ import { IconButton } from "./components/ui.jsx";
 import { InfoIcon, SettingsIcon } from "./components/icons.jsx";
 import {
   APP_VERSION,
+  DEFAULT_LANGUAGE,
   PROXY_BASE_URL,
   TAXA_CACHE_MAX_AGE_MS,
 } from "./config.js";
@@ -26,7 +27,6 @@ import {
   loadAutoAlternateSearch,
   loadDanishOnly,
   loadOriginalTitleOnly,
-  loadLanguage,
   loadOrCreateProxyClientId,
   readTaxaCache,
   saveAuth,
@@ -35,7 +35,6 @@ import {
   saveAutoAlternateSearch,
   saveDanishOnly,
   saveOriginalTitleOnly,
-  saveLanguage,
   writeTaxaCache,
 } from "./storage/localStorage.js";
 import {
@@ -43,9 +42,13 @@ import {
   filterSearchResults,
   otherMediaType,
   buildSearchStatusItems,
+  mergeUniqueSearchResults,
+  shouldContinueFilteredSearch,
 } from "./domain/search.js";
 
 const proxyConfigured = Boolean(PROXY_BASE_URL);
+const SEARCH_RESULT_BATCH_SIZE = 20;
+const ZERO_HIT_PAGE_SCAN = 3;
 
 function currentPage() {
   return window.location.hash.replace(/^#/, "") || "home";
@@ -63,7 +66,7 @@ export default function App() {
   const [activeSource, setActiveSource] = useState("");
   const [proxyClientId] = useState(() => loadOrCreateProxyClientId());
 
-  const [language, setLanguage] = useState(() => loadLanguage());
+  const language = DEFAULT_LANGUAGE;
   const [includeAdult, setIncludeAdult] = useState(() => loadIncludeAdult());
   const [autoAlternateSearch, setAutoAlternateSearch] = useState(() => loadAutoAlternateSearch());
   const [danishOnly, setDanishOnly] = useState(() => loadDanishOnly());
@@ -74,7 +77,11 @@ export default function App() {
   const [searching, setSearching] = useState(false);
   const [searchCompleted, setSearchCompleted] = useState(false);
   const [searchNotice, setSearchNotice] = useState("");
+  const [activeSearchQuery, setActiveSearchQuery] = useState("");
   const [results, setResults] = useState([]);
+  const [searchPage, setSearchPage] = useState(0);
+  const [searchTotalPages, setSearchTotalPages] = useState(0);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [smartSearchCriteria, setSmartSearchCriteria] = useState(null);
 
   const [taxaAggregate, setTaxaAggregate] = useState(null);
@@ -153,7 +160,7 @@ export default function App() {
   const loadTaxa = useCallback(
     async ({ force = false, signal } = {}) => {
       if (!client.isConfigured()) {
-        throw new Error("Konfigurér en proxy eller din egen TMDB-nøgle først.");
+        throw new Error("Vælg Via TAXA eller angiv din egen TMDB-nøgle først.");
       }
 
       if (!force) {
@@ -219,8 +226,12 @@ export default function App() {
     searchAbortRef.current?.abort();
     creditsAbortRef.current?.abort();
     setResults([]);
+    setSearchPage(0);
+    setSearchTotalPages(0);
+    setLoadingMore(false);
     setSearchCompleted(false);
     setSearchNotice("");
+    setActiveSearchQuery("");
     setSmartSearchCriteria(null);
     setSelected(null);
     setOverlaps([]);
@@ -230,12 +241,6 @@ export default function App() {
 
   function changeMediaType(nextType) {
     setMediaType(nextType);
-    resetResultState();
-  }
-
-  function changeLanguage(nextLanguage) {
-    saveLanguage(nextLanguage);
-    setLanguage(nextLanguage);
     resetResultState();
   }
 
@@ -296,7 +301,6 @@ export default function App() {
     setAutoAlternateSearch(true);
     setDanishOnly(false);
     setOriginalTitleOnly(false);
-    setLanguage("da-DK");
     setConnectionMode(proxyConfigured ? "auto" : "direct");
     resetResultState();
   }
@@ -310,9 +314,10 @@ export default function App() {
     }
   }
 
-  async function searchForType({
+  async function fetchSearchPage({
     searchType,
     trimmedQuery,
+    page = 1,
     signal,
     searchCriteria = {},
   }) {
@@ -328,17 +333,93 @@ export default function App() {
       query: trimmedQuery,
       includeAdult: effectiveIncludeAdult,
       language,
-      page: 1,
+      page,
       signal,
     });
 
-    return filterSearchResults(data?.results, {
-      mediaType: searchType,
-      query: trimmedQuery,
-      includeAdult: effectiveIncludeAdult,
-      danishOnly: effectiveDanishOnly,
-      originalTitleOnly: effectiveOriginalTitleOnly,
-    });
+    const responsePage = Math.max(1, Number(data?.page || page) || page);
+    const totalPages = Math.min(
+      500,
+      Math.max(
+        responsePage,
+        Number(data?.total_pages || responsePage) || responsePage,
+      ),
+    );
+
+    return {
+      items: filterSearchResults(data?.results, {
+        mediaType: searchType,
+        query: trimmedQuery,
+        includeAdult: effectiveIncludeAdult,
+        danishOnly: effectiveDanishOnly,
+        originalTitleOnly: effectiveOriginalTitleOnly,
+      }),
+      page: responsePage,
+      totalPages,
+      totalResults: Number(data?.total_results || 0) || 0,
+    };
+  }
+
+  async function searchForType({
+    searchType,
+    trimmedQuery,
+    signal,
+    searchCriteria = {},
+    startPage = 1,
+    targetCount = SEARCH_RESULT_BATCH_SIZE,
+    zeroHitPageLimit = ZERO_HIT_PAGE_SCAN,
+  }) {
+    let page = Math.max(1, Number(startPage) || 1);
+    let totalPages = page;
+    let totalResults = 0;
+    let items = [];
+    let scanned = 0;
+
+    while (page <= totalPages) {
+      const response = await fetchSearchPage({
+        searchType,
+        trimmedQuery,
+        page,
+        signal,
+        searchCriteria,
+      });
+
+      items = mergeUniqueSearchResults(items, response.items);
+      totalPages = response.totalPages;
+      totalResults = response.totalResults;
+      scanned += 1;
+
+      if (!shouldContinueFilteredSearch({
+        filteredCount: items.length,
+        targetCount,
+        page: response.page,
+        totalPages,
+        scannedPages: scanned,
+        zeroHitPageLimit,
+      })) {
+        return {
+          items,
+          page: response.page,
+          totalPages,
+          totalResults,
+        };
+      }
+
+      page = response.page + 1;
+    }
+
+    return {
+      items,
+      page: Math.min(page - 1, totalPages),
+      totalPages,
+      totalResults,
+    };
+  }
+
+  function applySearchResponse(response) {
+    setResults(response.items);
+    setSearchPage(response.page);
+    setSearchTotalPages(response.totalPages);
   }
 
   async function doSearch() {
@@ -353,25 +434,30 @@ export default function App() {
     const alternateType = otherMediaType(initialType);
 
     setSearching(true);
+    setLoadingMore(false);
     setSearchCompleted(false);
     setSearchNotice("");
+    setActiveSearchQuery(trimmedQuery);
     setResults([]);
+    setSearchPage(0);
+    setSearchTotalPages(0);
+    setSmartSearchCriteria(null);
     setSelected(null);
     setOverlaps([]);
     setOverlapStatus("idle");
     setError("");
 
     try {
-      const initialResults = await searchForType({
+      const initialResponse = await searchForType({
         searchType: initialType,
         trimmedQuery,
         signal: controller.signal,
       });
 
-      if (initialResults.length > 0 || !autoAlternateSearch) {
-        setResults(initialResults);
+      if (initialResponse.items.length > 0 || !autoAlternateSearch) {
+        applySearchResponse(initialResponse);
         setSearchCompleted(true);
-        if (!initialResults.length && !autoAlternateSearch) {
+        if (!initialResponse.items.length && !autoAlternateSearch) {
           setSearchNotice(
             `Ingen ${initialType === "tv" ? "TV-serier" : "film"} fundet.`,
           );
@@ -379,20 +465,22 @@ export default function App() {
         return;
       }
 
-      const alternateResults = await searchForType({
+      const alternateResponse = await searchForType({
         searchType: alternateType,
         trimmedQuery,
         signal: controller.signal,
       });
 
-      if (alternateResults.length > 0) {
+      if (alternateResponse.items.length > 0) {
         setMediaType(alternateType);
-        setResults(alternateResults);
+        applySearchResponse(alternateResponse);
         setSearchNotice(
-          `Ingen ${initialType === "tv" ? "TV-serier" : "film"} fundet. Jeg søgte også som ${alternateType === "tv" ? "TV-serie" : "film"} og fandt ${alternateResults.length} resultat${alternateResults.length === 1 ? "" : "er"}.`,
+          `Ingen ${initialType === "tv" ? "TV-serier" : "film"} fundet. Jeg søgte også som ${alternateType === "tv" ? "TV-serie" : "film"} og fandt ${alternateResponse.items.length} resultat${alternateResponse.items.length === 1 ? "" : "er"}.`,
         );
       } else {
         setResults([]);
+        setSearchPage(alternateResponse.page);
+        setSearchTotalPages(alternateResponse.totalPages);
         setSearchNotice(
           `Ingen resultater som ${initialType === "tv" ? "TV-serie" : "film"} eller ${alternateType === "tv" ? "TV-serie" : "film"}.`,
         );
@@ -418,23 +506,28 @@ export default function App() {
     const controller = new AbortController();
     searchAbortRef.current = controller;
     setSearching(true);
+    setLoadingMore(false);
     setSearchCompleted(false);
     setSearchNotice("");
+    setActiveSearchQuery(trimmedQuery);
     setResults([]);
+    setSearchPage(0);
+    setSearchTotalPages(0);
+    setSmartSearchCriteria(null);
     setSelected(null);
     setOverlaps([]);
     setOverlapStatus("idle");
     setError("");
 
     try {
-      const nextResults = await searchForType({
+      const response = await searchForType({
         searchType: nextType,
         trimmedQuery,
         signal: controller.signal,
       });
-      setResults(nextResults);
+      applySearchResponse(response);
       setSearchNotice(
-        nextResults.length
+        response.items.length
           ? `Søgt som ${nextType === "tv" ? "TV-serie" : "film"}.`
           : `Ingen ${nextType === "tv" ? "TV-serier" : "film"} fundet.`,
       );
@@ -465,24 +558,28 @@ export default function App() {
 
     setSmartSearchCriteria(nextCriteria);
     setSearching(true);
+    setLoadingMore(false);
     setSearchCompleted(false);
     setSearchNotice("");
+    setActiveSearchQuery(trimmedQuery);
     setResults([]);
+    setSearchPage(0);
+    setSearchTotalPages(0);
     setSelected(null);
     setOverlaps([]);
     setOverlapStatus("idle");
     setError("");
 
     try {
-      const initialResults = await searchForType({
+      const initialResponse = await searchForType({
         searchType: initialType,
         trimmedQuery,
         signal: controller.signal,
         searchCriteria: nextCriteria,
       });
 
-      if (initialResults.length > 0) {
-        setResults(initialResults);
+      if (initialResponse.items.length > 0) {
+        applySearchResponse(initialResponse);
         setSearchNotice(
           `Jeg udvidede søgningen ved at lempe ${option.reason}.`,
         );
@@ -491,7 +588,7 @@ export default function App() {
       }
 
       if (!autoAlternateSearch) {
-        setResults([]);
+        applySearchResponse(initialResponse);
         setSearchNotice(
           `Ingen ${initialType === "tv" ? "TV-serier" : "film"} fundet med den bredere søgning.`,
         );
@@ -499,23 +596,23 @@ export default function App() {
         return;
       }
 
-      const alternateResults = await searchForType({
+      const alternateResponse = await searchForType({
         searchType: alternateType,
         trimmedQuery,
         signal: controller.signal,
         searchCriteria: nextCriteria,
       });
 
-      if (alternateResults.length > 0) {
+      if (alternateResponse.items.length > 0) {
         setMediaType(alternateType);
-        setResults(alternateResults);
+        applySearchResponse(alternateResponse);
         setSearchNotice(
-          `Ingen ${initialType === "tv" ? "TV-serier" : "film"} fundet. Jeg udvidede søgningen ved at lempe ${option.reason} og fandt ${alternateResults.length} resultat${alternateResults.length === 1 ? "" : "er"} som ${alternateType === "tv" ? "TV-serie" : "film"}.`,
+          `Ingen ${initialType === "tv" ? "TV-serier" : "film"} fundet. Jeg udvidede søgningen ved at lempe ${option.reason} og fandt ${alternateResponse.items.length} resultat${alternateResponse.items.length === 1 ? "" : "er"} som ${alternateType === "tv" ? "TV-serie" : "film"}.`,
         );
       } else {
-        setResults([]);
+        applySearchResponse(alternateResponse);
         setSearchNotice(
-          `Ingen resultater med den bredere søgning.`,
+          "Ingen resultater med den bredere søgning.",
         );
       }
       setSearchCompleted(true);
@@ -525,6 +622,70 @@ export default function App() {
     } finally {
       if (searchAbortRef.current === controller) {
         setSearching(false);
+      }
+    }
+  }
+
+  async function loadMoreSearchResults() {
+    const trimmedQuery = activeSearchQuery;
+    if (
+      loadingMore ||
+      !trimmedQuery ||
+      !client.isConfigured() ||
+      searchPage >= searchTotalPages
+    ) {
+      return;
+    }
+
+    searchAbortRef.current?.abort();
+    const controller = new AbortController();
+    searchAbortRef.current = controller;
+    setLoadingMore(true);
+    setError("");
+
+    const criteria = smartSearchCriteria || {
+      includeAdult,
+      danishOnly,
+      originalTitleOnly,
+    };
+
+    let nextPage = searchPage + 1;
+    let latestPage = searchPage;
+    let latestTotalPages = searchTotalPages;
+    let mergedResults = results;
+    const targetCount = results.length + SEARCH_RESULT_BATCH_SIZE;
+
+    try {
+      while (
+        mergedResults.length < targetCount &&
+        nextPage <= latestTotalPages
+      ) {
+        const response = await fetchSearchPage({
+          searchType: mediaType,
+          trimmedQuery,
+          page: nextPage,
+          signal: controller.signal,
+          searchCriteria: criteria,
+        });
+
+        mergedResults = mergeUniqueSearchResults(
+          mergedResults,
+          response.items,
+        );
+        latestPage = response.page;
+        latestTotalPages = response.totalPages;
+        nextPage = response.page + 1;
+      }
+
+      setResults(mergedResults);
+      setSearchPage(latestPage);
+      setSearchTotalPages(latestTotalPages);
+    } catch (searchError) {
+      if (searchError?.name === "AbortError") return;
+      setError(searchError.message || String(searchError));
+    } finally {
+      if (searchAbortRef.current === controller) {
+        setLoadingMore(false);
       }
     }
   }
@@ -568,6 +729,42 @@ export default function App() {
       setOverlapStatus("error");
       setError(creditsError.message || String(creditsError));
     }
+  }
+
+  function changeSelectedTitle() {
+    creditsAbortRef.current?.abort();
+    if (activeSearchQuery) setQuery(activeSearchQuery);
+    setSelected(null);
+    setOverlaps([]);
+    setOverlapStatus("idle");
+    setError("");
+
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        searchResultsRef.current?.scrollIntoView({
+          behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+            ? "auto"
+            : "smooth",
+          block: "start",
+        });
+        searchResultsRef.current?.focus({ preventScroll: true });
+      });
+    });
+  }
+
+  function startNewSearch() {
+    resetResultState();
+    setQuery("");
+    requestAnimationFrame(() => {
+      const input = document.getElementById("title-search");
+      input?.scrollIntoView({
+        behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+          ? "auto"
+          : "smooth",
+        block: "center",
+      });
+      input?.focus({ preventScroll: true });
+    });
   }
 
   useEffect(() => {
@@ -652,20 +849,25 @@ export default function App() {
           </div>
         )}
 
-        <SearchResults
-          sectionRef={searchResultsRef}
-          results={results}
-          mediaType={mediaType}
-          searching={searching}
-          searchCompleted={searchCompleted}
-          onSelect={checkSelected}
-          searchNotice={searchNotice}
-          onTryOtherType={autoAlternateSearch && searchNotice ? null : tryOtherTypeManually}
-          smartSearchOptions={buildSmartSearchOptions(
-            smartSearchCriteria || { danishOnly, originalTitleOnly },
-          )}
-          onSmartSearch={runSmartSearch}
-        />
+        {!selected && (
+          <SearchResults
+            sectionRef={searchResultsRef}
+            results={results}
+            mediaType={mediaType}
+            searching={searching}
+            loadingMore={loadingMore}
+            hasMore={searchPage > 0 && searchPage < searchTotalPages}
+            onLoadMore={loadMoreSearchResults}
+            searchCompleted={searchCompleted}
+            onSelect={checkSelected}
+            searchNotice={searchNotice}
+            onTryOtherType={autoAlternateSearch && searchNotice ? null : tryOtherTypeManually}
+            smartSearchOptions={buildSmartSearchOptions(
+              smartSearchCriteria || { danishOnly, originalTitleOnly },
+            )}
+            onSmartSearch={runSmartSearch}
+          />
+        )}
 
         <OverlapResults
           sectionRef={overlapRef}
@@ -675,6 +877,8 @@ export default function App() {
           overlaps={overlaps}
           sortMode={sortMode}
           onSortModeChange={setSortMode}
+          onChangeTitle={changeSelectedTitle}
+          onNewSearch={startNewSearch}
         />
 
         <footer className="mt-10 flex items-center justify-between gap-4 border-t border-slate-800 pt-4 text-xs text-slate-500">
@@ -702,8 +906,6 @@ export default function App() {
         connectionMode={connectionMode}
         onConnectionModeChange={changeConnectionMode}
         proxyConfigured={proxyConfigured}
-        language={language}
-        onLanguageChange={changeLanguage}
         includeAdult={includeAdult}
         onIncludeAdultChange={changeIncludeAdult}
         autoAlternateSearch={autoAlternateSearch}

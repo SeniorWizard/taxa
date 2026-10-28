@@ -7,6 +7,9 @@ export function SearchResults({
   mediaType,
   searchCompleted,
   searching,
+  loadingMore,
+  hasMore,
+  onLoadMore,
   onSelect,
   searchNotice,
   onTryOtherType,
@@ -79,7 +82,7 @@ export function SearchResults({
       {notice}
       <div className="mb-3 flex items-baseline justify-between gap-3">
         <h2 className="text-xl font-semibold">Vælg titel</h2>
-        <span className="text-xs text-slate-500">{results.length} resultater</span>
+        <span className="text-xs text-slate-500">{results.length} vist</span>
       </div>
       <div className="grid gap-3 md:grid-cols-2">
         {results.map((item) => {
@@ -117,6 +120,19 @@ export function SearchResults({
           );
         })}
       </div>
+
+      {hasMore && onLoadMore && (
+        <div className="mt-5 flex justify-center">
+          <button
+            type="button"
+            onClick={onLoadMore}
+            disabled={loadingMore}
+            className="rounded-2xl bg-slate-800 px-4 py-2.5 text-sm font-medium text-slate-200 ring-1 ring-slate-700 transition hover:ring-yellow-400/50 disabled:cursor-wait disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-yellow-300"
+          >
+            {loadingMore ? "Henter flere…" : "Hent flere"}
+          </button>
+        </div>
+      )}
     </section>
   );
 }

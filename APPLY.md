@@ -1,19 +1,22 @@
-# Apply
+# TAXA-overlap 1.4 – filtreret pagination og kompakte titelkontroller
 
-Unpack this patch over the current TAXA-overlap 1.4 working tree.
+Patchen lægges oven på den seneste 1.4 flow-polish-version.
 
-Changes:
-- transparent neon header/about logo
-- dark circular crown favicon for 32/64 px
-- service-worker cache bump to `taxa-overlap-v1.4-ui4`
-- updated graphics notes
+## Ændringer
 
-Then run:
+- Filtrerede TMDB-søgninger henter videre, indtil der er mindst 20 filtrerede resultater eller TMDB ikke har flere sider.
+- "Hent flere" henter tilsvarende op til 20 nye filtrerede resultater og forsvinder, når alle TMDB-sider er gennemgået.
+- Ved helt nul filtrerede hits beholdes en sikkerhedsgrænse på 3 TMDB-sider før Smart Search foreslås, så meget snævre søgninger ikke kan udløse hundredvis af API-kald.
+- "Vis flere" er omdøbt til "Hent flere".
+- "Skift titel" er erstattet af en fold-ud-pil, som genåbner de allerede hentede titler uden nyt API-kald.
+- "Ny søgning" er erstattet af en skraldespand, som rydder søgningen og fokuserer søgefeltet.
+- Service-worker-cache er bumpet til ux6.
+- To regressionstests dækker den nye filtrerede pagineringslogik.
+
+## Efter udpakning
 
 ```bash
 npm test
 npm run build
 npm run preview
 ```
-
-Because the service worker caches graphics, a hard reload or reopening an installed PWA may be needed once after deployment.
