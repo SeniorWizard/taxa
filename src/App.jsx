@@ -18,6 +18,7 @@ import {
   compareMatches,
   findOverlaps,
 } from "./domain/overlap.js";
+import { buildReferenceMapFromSnapshot } from "./domain/referenceSnapshot.js";
 import {
   clearAppData,
   clearAuth,
@@ -87,6 +88,8 @@ export default function App() {
   const [taxaAggregate, setTaxaAggregate] = useState(null);
   const [taxaMeta, setTaxaMeta] = useState(null);
   const [taxaLoading, setTaxaLoading] = useState(false);
+  const [referenceSnapshot, setReferenceSnapshot] = useState(null);
+  const [referenceSnapshotStatus, setReferenceSnapshotStatus] = useState("idle");
 
   const [selected, setSelected] = useState(null);
   const [overlapStatus, setOverlapStatus] = useState("idle");
@@ -133,6 +136,13 @@ export default function App() {
     () => buildReferenceMap(taxaAggregate),
     [taxaAggregate],
   );
+  const snapshotReferenceMap = useMemo(
+    () => buildReferenceMapFromSnapshot(referenceSnapshot),
+    [referenceSnapshot],
+  );
+  const activeReferenceMap = snapshotReferenceMap.size > 0
+    ? snapshotReferenceMap
+    : taxaMap;
 
   useEffect(() => {
     function handleHashChange() {
@@ -690,6 +700,24 @@ export default function App() {
     }
   }
 
+  async function loadReferenceSnapshot({ signal } = {}) {
+    if (referenceSnapshot) return referenceSnapshot;
+    if (!client.hasReferenceSnapshotSource()) return null;
+
+    setReferenceSnapshotStatus("loading");
+    try {
+      const data = await client.getReferenceSnapshot({ slug: "taxa", signal });
+      setReferenceSnapshot(data);
+      setReferenceSnapshotStatus("ready");
+      return data;
+    } catch (snapshotError) {
+      if (snapshotError?.name === "AbortError") throw snapshotError;
+      console.warn("Episodeindekset kunne ikke indlæses:", snapshotError);
+      setReferenceSnapshotStatus("unavailable");
+      return null;
+    }
+  }
+
   async function checkSelected(item) {
     if (!item || !client.isConfigured()) return;
 
@@ -703,18 +731,29 @@ export default function App() {
     setError("");
 
     try {
-      let referenceMap = taxaMap;
-      if (referenceMap.size === 0) {
-        const data = await loadTaxa({ force: true, signal: controller.signal });
-        referenceMap = buildReferenceMap(data);
-      }
-
-      const credits = await client.getTitleCredits({
+      const snapshotPromise = loadReferenceSnapshot({
+        signal: controller.signal,
+      });
+      const creditsPromise = client.getTitleCredits({
         mediaType,
         id: item.id,
         language,
         signal: controller.signal,
       });
+
+      const [snapshot, credits] = await Promise.all([
+        snapshotPromise,
+        creditsPromise,
+      ]);
+
+      let referenceMap = snapshot
+        ? buildReferenceMapFromSnapshot(snapshot)
+        : taxaMap;
+
+      if (referenceMap.size === 0) {
+        const data = await loadTaxa({ force: true, signal: controller.signal });
+        referenceMap = buildReferenceMap(data);
+      }
 
       const matches = findOverlaps(
         credits?.cast,
@@ -875,10 +914,13 @@ export default function App() {
           mediaType={mediaType}
           status={overlapStatus}
           overlaps={overlaps}
+          referenceSnapshot={referenceSnapshot}
+          referenceSnapshotStatus={referenceSnapshotStatus}
           sortMode={sortMode}
           onSortModeChange={setSortMode}
           onChangeTitle={changeSelectedTitle}
           onNewSearch={startNewSearch}
+          onEnsureReferenceSnapshot={loadReferenceSnapshot}
         />
 
         <footer className="mt-10 flex items-center justify-between gap-4 border-t border-slate-800 pt-4 text-xs text-slate-500">
@@ -914,7 +956,7 @@ export default function App() {
         onDanishOnlyChange={changeDanishOnly}
         originalTitleOnly={originalTitleOnly}
         onOriginalTitleOnlyChange={changeOriginalTitleOnly}
-        taxaCount={taxaMap.size}
+        taxaCount={activeReferenceMap.size}
         taxaMeta={taxaMeta}
         taxaLoading={taxaLoading}
         onRefreshTaxa={refreshTaxa}

@@ -4,6 +4,7 @@ import {
   buildReferenceMap,
   compareMatches,
   findOverlaps,
+  itemsPerPageForWidth,
   paginateItems,
   tmdbImageUrl,
   yearFrom,
@@ -106,4 +107,14 @@ test("lokal overlap-paginering deler listen i stabile sider", () => {
   assert.equal(first.items.length, 12);
   assert.deepEqual(third.items.map((item) => item.id), [25]);
   assert.equal(third.page, 3);
+});
+
+
+test("episodekort pr. side følger den faktiske containerbredde", () => {
+  assert.equal(itemsPerPageForWidth(0), 1);
+  assert.equal(itemsPerPageForWidth(179), 1);
+  assert.equal(itemsPerPageForWidth(370), 2);
+  assert.equal(itemsPerPageForWidth(560), 3);
+  assert.equal(itemsPerPageForWidth(750), 4);
+  assert.equal(itemsPerPageForWidth(2000), 5);
 });

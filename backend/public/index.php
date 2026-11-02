@@ -8,6 +8,7 @@ use TaxaProxy\Cors;
 use TaxaProxy\HttpException;
 use TaxaProxy\ProxyApplication;
 use TaxaProxy\RateLimiter;
+use TaxaProxy\ReferenceSnapshotStore;
 use TaxaProxy\Request;
 use TaxaProxy\Response;
 use TaxaProxy\TmdbClient;
@@ -38,6 +39,7 @@ try {
         $cache,
         new RateLimiter($cache->pdo()),
         new TmdbClient($config),
+        new ReferenceSnapshotStore($config->string('storage.reference_snapshot_dir')),
     );
 
     $application->handle($request)->send(array_merge($corsHeaders, [

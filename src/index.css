@@ -149,3 +149,118 @@ button {
   box-shadow: none;
 }
 
+
+/* Episode index: constrained, paged cards. Only the current page is rendered. */
+.episode-carousel {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  contain: inline-size;
+}
+
+.episode-page {
+  display: grid;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  grid-template-columns: repeat(var(--episode-columns, 1), minmax(0, 1fr));
+  gap: 0.65rem;
+}
+
+.episode-card {
+  display: flex;
+  min-width: 0;
+  min-height: 10.5rem;
+  flex-direction: column;
+  border: 1px solid rgba(71, 85, 105, 0.78);
+  border-radius: 0.9rem;
+  background: rgba(15, 23, 42, 0.58);
+  padding: 0.75rem;
+}
+
+.episode-card.is-special {
+  border-color: rgba(250, 204, 21, 0.28);
+  background: rgba(250, 204, 21, 0.035);
+}
+
+.episode-code {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid rgba(100, 116, 139, 0.78);
+  border-radius: 9999px;
+  background: rgba(30, 41, 59, 0.78);
+  padding: 0.18rem 0.45rem;
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: #cbd5e1;
+}
+
+.episode-code.is-special {
+  border-color: rgba(250, 204, 21, 0.34);
+  color: rgba(254, 240, 138, 0.9);
+}
+
+.episode-special-label {
+  font-size: 0.62rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(253, 224, 71, 0.72);
+}
+
+.episode-overview {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.episode-scroll-button {
+  display: inline-flex;
+  width: 1.9rem;
+  height: 1.9rem;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(71, 85, 105, 0.8);
+  border-radius: 0.65rem;
+  background: rgba(30, 41, 59, 0.66);
+  color: #cbd5e1;
+  transition: border-color 140ms ease, background-color 140ms ease, color 140ms ease;
+}
+
+.episode-scroll-button:disabled {
+  cursor: default;
+  opacity: 0.3;
+}
+
+.episode-scroll-button:hover:not(:disabled) {
+  border-color: rgba(148, 163, 184, 0.8);
+  background: rgba(51, 65, 85, 0.72);
+  color: #f8fafc;
+}
+
+.episode-scroll-button:focus-visible {
+  outline: 2px solid rgba(253, 224, 71, 0.9);
+  outline-offset: 2px;
+}
+
+@media (min-width: 768px) {
+  .episode-card {
+    min-height: 12rem;
+  }
+
+  .episode-overview {
+    -webkit-line-clamp: 4;
+  }
+}
+
+@media (min-width: 1200px) {
+  .episode-card {
+    min-height: 13.5rem;
+  }
+
+  .episode-overview {
+    -webkit-line-clamp: 6;
+  }
+}

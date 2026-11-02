@@ -191,6 +191,24 @@ export function tmdbImageUrl(path, size = "w185") {
 }
 
 
+
+export function itemsPerPageForWidth(
+  width,
+  { minItemWidth = 180, gap = 10, maxItems = 5 } = {},
+) {
+  const available = Math.max(0, Number(width) || 0);
+  const item = Math.max(1, Number(minItemWidth) || 1);
+  const spacing = Math.max(0, Number(gap) || 0);
+  const maximum = Math.max(1, Math.floor(Number(maxItems) || 1));
+
+  if (available <= 0) return 1;
+
+  return Math.max(
+    1,
+    Math.min(maximum, Math.floor((available + spacing) / (item + spacing))),
+  );
+}
+
 export function paginateItems(items, page = 1, pageSize = 12) {
   const source = Array.isArray(items) ? items : [];
   const size = Math.max(1, Number(pageSize) || 12);

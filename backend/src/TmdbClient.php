@@ -28,8 +28,10 @@ final class UpstreamResponse
 
 final class TmdbClient
 {
-    public function __construct(private readonly Config $config)
-    {
+    public function __construct(
+        private readonly Config $config,
+        private readonly ?RefreshMetrics $metrics = null,
+    ) {
     }
 
     /** @param array<string, scalar> $parameters */
@@ -50,11 +52,17 @@ final class TmdbClient
             $headers[] = 'Authorization: Bearer ' . $bearerToken;
         }
 
-        if (function_exists('curl_init')) {
-            return $this->requestWithCurl($url, $headers);
+        $startedAt = microtime(true);
+        try {
+            $response = function_exists('curl_init')
+                ? $this->requestWithCurl($url, $headers)
+                : $this->requestWithStreams($url, $headers);
+            $this->metrics?->networkRequest($response->status, (microtime(true) - $startedAt) * 1000);
+            return $response;
+        } catch (\Throwable $exception) {
+            $this->metrics?->error();
+            throw $exception;
         }
-
-        return $this->requestWithStreams($url, $headers);
     }
 
     /** @param array<string, scalar> $parameters */

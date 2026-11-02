@@ -241,6 +241,10 @@ function proxyProvider(proxyBaseUrl, proxyClientId, fetchImpl) {
     getTaxaCredits({ language, signal }) {
       return get("reference/taxa", { language }, signal);
     },
+
+    getReferenceSnapshot({ slug = "taxa", signal }) {
+      return get(`reference-data/${slug}`, {}, signal);
+    },
   };
 }
 
@@ -321,6 +325,20 @@ export function createTmdbClient({
 
     getTaxaCredits(args) {
       return invoke("getTaxaCredits", args);
+    },
+
+    getReferenceSnapshot(args = {}) {
+      if (!normalizedProxyBaseUrl) {
+        throw new TmdbRequestError(
+          "Episodeindekset kræver TAXA-backenden.",
+          { source: "proxy" },
+        );
+      }
+      return proxy.getReferenceSnapshot(args);
+    },
+
+    hasReferenceSnapshotSource() {
+      return Boolean(normalizedProxyBaseUrl);
     },
   };
 }
