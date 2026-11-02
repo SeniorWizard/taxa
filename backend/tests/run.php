@@ -138,6 +138,174 @@ CONFIG);
 });
 
 
+
+$test('Reference-snapshot normaliserer episoder og måler datakvalitet', static function () use ($assertSame): void {
+    $source = new class implements \TaxaProxy\ReferenceDataSource {
+        public function get(string $path, array $parameters, bool $force = false): array
+        {
+            return match ($path) {
+                '/tv/51261' => [
+                    'name' => 'TAXA',
+                    'original_name' => 'Taxa',
+                    'original_language' => 'da',
+                    'number_of_seasons' => 1,
+                    'number_of_episodes' => 2,
+                    'seasons' => [
+                        ['season_number' => 1, 'episode_count' => 2],
+                    ],
+                ],
+                '/tv/51261/aggregate_credits' => [
+                    'cast' => [
+                        [
+                            'id' => 10,
+                            'name' => 'Person A',
+                            'total_episode_count' => 2,
+                            'roles' => [['character' => 'A', 'episode_count' => 2, 'credit_id' => 'a']],
+                        ],
+                        [
+                            'id' => 20,
+                            'name' => 'Person B',
+                            'total_episode_count' => 1,
+                            'roles' => [['character' => 'B', 'episode_count' => 1, 'credit_id' => 'b']],
+                        ],
+                    ],
+                ],
+                '/tv/51261/season/1' => [
+                    'episodes' => [
+                        [
+                            'id' => 101,
+                            'season_number' => 1,
+                            'episode_number' => 1,
+                            'name' => 'Første',
+                            'air_date' => '1997-01-01',
+                            'runtime' => 45,
+                        ],
+                        [
+                            'id' => 102,
+                            'season_number' => 1,
+                            'episode_number' => 2,
+                            'name' => 'Anden',
+                            'air_date' => '1997-01-08',
+                            'runtime' => 46,
+                        ],
+                    ],
+                ],
+                '/tv/51261/season/1/episode/1/credits' => [
+                    'cast' => [['id' => 10, 'name' => 'Person A']],
+                    'guest_stars' => [['id' => 30, 'name' => 'Person C']],
+                ],
+                '/tv/51261/season/1/episode/2/credits' => [
+                    'cast' => [['id' => 10, 'name' => 'Person A']],
+                    'guest_stars' => [],
+                ],
+                default => throw new RuntimeException('Uventet test-path: ' . $path),
+            };
+        }
+    };
+
+    $builder = new \TaxaProxy\ReferenceSnapshotBuilder($source);
+    $reference = new \TaxaProxy\ReferenceDefinition('taxa', 51261, 'TAXA', 'da-DK', true);
+    $snapshot = $builder->build($reference);
+
+    $assertSame(101, $snapshot['episodes']['S01E01']['tmdb_id']);
+    $assertSame(['S01E01', 'S01E02'], $snapshot['people'][10]['episodes']);
+    $assertSame(2, $snapshot['people'][10]['indexed_episode_count']);
+    $assertSame('episode_credits_only', $snapshot['people'][30]['source']);
+    $assertSame(1, $snapshot['quality']['exact_episode_count_match']);
+    $assertSame(1, $snapshot['quality']['missing_episode_index']);
+    $assertSame(1, $snapshot['quality']['episode_credits_only_people']);
+});
+
+
+$test('Datakvalitet forklarer season 0 som special-afvigelse', static function () use ($assertSame): void {
+    $source = new class implements \TaxaProxy\ReferenceDataSource {
+        public function get(string $path, array $parameters, bool $force = false): array
+        {
+            return match ($path) {
+                '/tv/51261' => [
+                    'name' => 'TAXA',
+                    'seasons' => [
+                        ['season_number' => 0, 'episode_count' => 1],
+                        ['season_number' => 1, 'episode_count' => 1],
+                    ],
+                ],
+                '/tv/51261/aggregate_credits' => [
+                    'cast' => [[
+                        'id' => 10,
+                        'name' => 'Person A',
+                        'total_episode_count' => 1,
+                        'roles' => [['character' => 'A', 'episode_count' => 1]],
+                    ]],
+                ],
+                '/tv/51261/season/0' => [
+                    'episodes' => [[
+                        'id' => 100,
+                        'season_number' => 0,
+                        'episode_number' => 1,
+                        'name' => 'Farvel til Taxa',
+                    ]],
+                ],
+                '/tv/51261/season/0/episode/1/credits' => [
+                    'cast' => [['id' => 10, 'name' => 'Person A']],
+                    'guest_stars' => [],
+                ],
+                '/tv/51261/season/1' => [
+                    'episodes' => [[
+                        'id' => 101,
+                        'season_number' => 1,
+                        'episode_number' => 1,
+                        'name' => 'Første',
+                    ]],
+                ],
+                '/tv/51261/season/1/episode/1/credits' => [
+                    'cast' => [['id' => 10, 'name' => 'Person A']],
+                    'guest_stars' => [],
+                ],
+                default => throw new RuntimeException('Uventet test-path: ' . $path),
+            };
+        }
+    };
+
+    $builder = new \TaxaProxy\ReferenceSnapshotBuilder($source);
+    $reference = new \TaxaProxy\ReferenceDefinition('taxa', 51261, 'TAXA', 'da-DK', true);
+    $snapshot = $builder->build($reference);
+    $quality = $snapshot['quality'];
+
+    $assertSame(0, $quality['exact_episode_count_match']);
+    $assertSame(1, $quality['different_episode_count']);
+    $assertSame(1, $quality['without_specials']['exact_episode_count_match']);
+    $assertSame(0, $quality['without_specials']['different_episode_count']);
+    $assertSame('S00E01', $quality['specials_among_differences'][0]['episode_key']);
+    $assertSame('Farvel til Taxa', $quality['specials_among_differences'][0]['name']);
+    $assertSame(1, $quality['specials_among_differences'][0]['people']);
+});
+
+$test('RefreshMetrics opsummerer cache og netværk', static function () use ($assertSame): void {
+    $metrics = new \TaxaProxy\RefreshMetrics();
+    $metrics->cacheHit();
+    $metrics->cacheMiss();
+    $metrics->networkRequest(200, 100.0);
+    $metrics->networkRequest(429, 300.0);
+    $metrics->staleFallback();
+    $metrics->addPhase('episode_credits', 0.5);
+    $snapshot = $metrics->snapshot();
+
+    $assertSame(1, $snapshot['cache_hits']);
+    $assertSame(1, $snapshot['cache_misses']);
+    $assertSame(2, $snapshot['network_requests']);
+    $assertSame(1, $snapshot['tmdb_throttles_429']);
+    $assertSame(1, $snapshot['stale_fallbacks']);
+    $assertSame(100.0, $snapshot['response_ms']['min']);
+    $assertSame(200.0, $snapshot['response_ms']['avg']);
+    $assertSame(300.0, $snapshot['response_ms']['max']);
+});
+
+$test('Episode-nøgler er stabile og menneskeligt læsbare', static function () use ($assertSame): void {
+    $assertSame('S00E01', \TaxaProxy\ReferenceSnapshotBuilder::episodeKey(0, 1));
+    $assertSame('S01E12', \TaxaProxy\ReferenceSnapshotBuilder::episodeKey(1, 12));
+    $assertSame('S12E103', \TaxaProxy\ReferenceSnapshotBuilder::episodeKey(12, 103));
+});
+
 if (extension_loaded('pdo_sqlite')) {
     $test('SQLite-cache gemmer og læser poster', static function () use ($assertSame): void {
         $path = sys_get_temp_dir() . '/taxa-cache-' . bin2hex(random_bytes(4)) . '.sqlite';

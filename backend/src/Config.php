@@ -35,6 +35,15 @@ final class Config
             ],
             'storage' => [
                 'database_path' => $rootDirectory . '/var/taxa-proxy.sqlite',
+                'reference_snapshot_dir' => $rootDirectory . '/var/reference',
+            ],
+            'references' => [
+                'taxa' => [
+                    'tmdb_id' => 51261,
+                    'name' => 'TAXA',
+                    'language' => 'da-DK',
+                    'include_specials' => true,
+                ],
             ],
             'network' => [
                 'trust_proxy_headers' => false,
@@ -55,6 +64,8 @@ final class Config
                 'credits_stale_seconds' => 604800,
                 'reference_ttl_seconds' => 604800,
                 'reference_stale_seconds' => 7776000,
+                'reference_source_ttl_seconds' => 2592000,
+                'reference_source_stale_seconds' => 31536000,
             ],
         ];
 
@@ -99,6 +110,16 @@ final class Config
         return (bool) $this->value($path);
     }
 
+    /** @return array<string, mixed> */
+    public function array(string $path): array
+    {
+        $value = $this->value($path);
+        if (!is_array($value)) {
+            throw new RuntimeException(sprintf('Konfigurationen \"%s\" er ikke et array.', $path));
+        }
+        return $value;
+    }
+
     /** @return list<string> */
     public function stringList(string $path): array
     {
@@ -138,6 +159,7 @@ final class Config
         self::setEnvString($values, 'TMDB_BEARER_TOKEN', ['tmdb', 'bearer_token']);
         self::setEnvString($values, 'TMDB_API_KEY', ['tmdb', 'api_key']);
         self::setEnvString($values, 'TAXA_PROXY_DATABASE', ['storage', 'database_path']);
+        self::setEnvString($values, 'TAXA_PROXY_REFERENCE_DIR', ['storage', 'reference_snapshot_dir']);
 
         $origins = getenv('TAXA_PROXY_ALLOWED_ORIGINS');
         if ($origins !== false && trim($origins) !== '') {
@@ -194,6 +216,16 @@ final class Config
         $databasePath = (string) ($values['storage']['database_path'] ?? '');
         if ($databasePath === '' || !str_starts_with($databasePath, '/')) {
             throw new RuntimeException('SQLite-stien skal være en absolut sti.');
+        }
+
+        $snapshotDir = (string) ($values['storage']['reference_snapshot_dir'] ?? '');
+        if ($snapshotDir === '' || !str_starts_with($snapshotDir, '/')) {
+            throw new RuntimeException('Reference snapshot-stien skal være en absolut sti.');
+        }
+
+        $references = $values['references'] ?? [];
+        if (!is_array($references) || $references === []) {
+            throw new RuntimeException('Mindst én referenceserie skal være konfigureret.');
         }
 
         $origins = $values['cors']['allowed_origins'] ?? [];

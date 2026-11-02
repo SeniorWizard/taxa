@@ -21,7 +21,6 @@ return [
         // Origins indeholder kun protokol + værtsnavn, aldrig /taxa/.
         'allowed_origins' => [
             'https://git.foo.dk',
-            'http://localhost:4173',
             'http://localhost:5173',
         ],
     ],
@@ -29,7 +28,18 @@ return [
     'storage' => [
         // Brug en absolut sti i en mappe, som Web Stations http-bruger kan skrive til.
         'database_path' => dirname(__DIR__) . '/var/taxa-proxy.sqlite',
+        'reference_snapshot_dir' => dirname(__DIR__) . '/var/reference',
     ],
+
+    // Valgfrit: tilføj flere referenceserier. TAXA findes allerede i defaults.
+    // 'references' => [
+    //     'matador' => [
+    //         'tmdb_id' => 00000,
+    //         'name' => 'Matador',
+    //         'language' => 'da-DK',
+    //         'include_specials' => true,
+    //     ],
+    // ],
 
     'network' => [
         // Lad stå false, medmindre proxyen står bag en kendt reverse proxy.

@@ -1,10 +1,17 @@
 import { useEffect, useRef, useState } from "react";
 import {
+  itemsPerPageForWidth,
   paginateItems,
   titleFor,
   tmdbImageUrl,
   yearFrom,
 } from "../domain/overlap.js";
+import {
+  episodeCountForDisplay,
+  episodeDetailsForPerson,
+  formatEpisodeDate,
+  splitRegularAndSpecialEpisodes,
+} from "../domain/referenceSnapshot.js";
 import {
   AlphabeticalIcon,
   ChevronDownIcon,
@@ -17,7 +24,6 @@ import {
 import { Pill, Spinner } from "./ui.jsx";
 
 const PAGE_SIZE = 12;
-const SWIPE_THRESHOLD_PX = 55;
 
 export function OverlapResults({
   sectionRef,
@@ -25,13 +31,15 @@ export function OverlapResults({
   mediaType,
   status,
   overlaps,
+  referenceSnapshot,
+  referenceSnapshotStatus,
   sortMode,
   onSortModeChange,
   onChangeTitle,
   onNewSearch,
+  onEnsureReferenceSnapshot,
 }) {
   const [page, setPage] = useState(1);
-  const touchStartRef = useRef(null);
 
   useEffect(() => {
     setPage(1);
@@ -83,35 +91,6 @@ export function OverlapResults({
       });
       sectionRef?.current?.focus({ preventScroll: true });
     });
-  }
-
-  function handleTouchStart(event) {
-    if (!hasMultiplePages || event.touches.length !== 1) return;
-    const touch = event.touches[0];
-    touchStartRef.current = { x: touch.clientX, y: touch.clientY };
-  }
-
-  function handleTouchEnd(event) {
-    const start = touchStartRef.current;
-    touchStartRef.current = null;
-    if (!start || !hasMultiplePages || !event.changedTouches.length) return;
-
-    const touch = event.changedTouches[0];
-    const dx = touch.clientX - start.x;
-    const dy = touch.clientY - start.y;
-
-    if (
-      Math.abs(dx) < SWIPE_THRESHOLD_PX ||
-      Math.abs(dx) <= Math.abs(dy) * 1.25
-    ) {
-      return;
-    }
-
-    if (dx < 0 && pagination.page < pagination.totalPages) {
-      goToPage(pagination.page + 1);
-    } else if (dx > 0 && pagination.page > 1) {
-      goToPage(pagination.page - 1);
-    }
   }
 
   return (
@@ -221,13 +200,15 @@ export function OverlapResults({
             </div>
           </div>
 
-          <div
-            className="grid touch-pan-y gap-3"
-            onTouchStart={handleTouchStart}
-            onTouchEnd={handleTouchEnd}
-          >
+          <div className="grid min-w-0 gap-3">
             {pagination.items.map((match) => (
-              <OverlapCard key={match.personId} match={match} />
+              <OverlapCard
+                key={match.personId}
+                match={match}
+                referenceSnapshot={referenceSnapshot}
+                referenceSnapshotStatus={referenceSnapshotStatus}
+                onEnsureReferenceSnapshot={onEnsureReferenceSnapshot}
+              />
             ))}
           </div>
 
@@ -271,12 +252,40 @@ export function OverlapResults({
   );
 }
 
-function OverlapCard({ match }) {
+function OverlapCard({
+  match,
+  referenceSnapshot,
+  referenceSnapshotStatus,
+  onEnsureReferenceSnapshot,
+}) {
   const profile = tmdbImageUrl(match.profilePath, "w185");
   const [open, setOpen] = useState(false);
+  const episodeDetails = episodeDetailsForPerson(referenceSnapshot, match.personId);
+  const { regular, specials } = splitRegularAndSpecialEpisodes(episodeDetails);
+  const hasEpisodeIndex = episodeDetails.length > 0;
+  // Det konkrete indeks inkluderer specials (season 0), som TMDB aggregate credits
+  // ikke tæller med. Brug derfor indekslængden til det viste total, når den findes.
+  const displayEpisodeCount = episodeCountForDisplay(
+    episodeDetails,
+    match.referenceEpisodes,
+  );
+
+  async function toggleEpisodeIndex() {
+    if (open) {
+      setOpen(false);
+      return;
+    }
+
+    // Fold altid kortet ud. Hvis snapshot'et ikke er tilgængeligt endnu,
+    // forsøg at hente det igen; EpisodeIndex viser status undervejs/ved fejl.
+    setOpen(true);
+    if (!referenceSnapshot && referenceSnapshotStatus !== "loading") {
+      await onEnsureReferenceSnapshot?.();
+    }
+  }
 
   return (
-    <article className="rounded-2xl bg-slate-800/60 p-3 ring-1 ring-slate-700">
+    <article className="min-w-0 overflow-hidden rounded-2xl bg-slate-800/60 p-3 ring-1 ring-slate-700">
       <div className="flex gap-3">
         <div className="h-12 w-12 flex-shrink-0 overflow-hidden rounded-xl bg-slate-700">
           {profile && (
@@ -311,21 +320,193 @@ function OverlapCard({ match }) {
               type="button"
               className="group -ml-1 inline-flex flex-wrap items-center gap-1 rounded-lg px-1 text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-yellow-300"
               aria-expanded={open}
-              onClick={() => setOpen((value) => !value)}
+              aria-label={`${open ? "Skjul" : "Vis"} konkrete TAXA-episoder for ${match.name}`}
+              onClick={toggleEpisodeIndex}
             >
               <span className="text-slate-500">Rolle(r) i TAXA: </span>
               {match.referenceRoles.map((role, index) => (
                 <Pill key={`${role.character}-${index}`}>{role.character}</Pill>
               ))}
-              <span className="ml-1 text-slate-300">› {match.referenceEpisodes} episoder</span>
+              <span className="ml-1 text-slate-300">
+                <span className={`inline-block transition-transform ${open ? "rotate-90" : ""}`}>›</span>{" "}
+                {displayEpisodeCount} episoder
+              </span>
             </button>
           </div>
         </div>
       </div>
 
       {open && (
-        <div className="ml-[3.75rem] mt-3 border-l border-slate-700 pl-3 text-xs text-slate-400">
-          Episodeoplysninger er endnu ikke en del af version 1.4. Når episodeindekset kommer, vises de her.
+        <EpisodeIndex
+          regular={regular}
+          specials={specials}
+          aggregateCount={match.referenceEpisodes}
+          status={referenceSnapshotStatus}
+          onRetry={onEnsureReferenceSnapshot}
+        />
+      )}
+    </article>
+  );
+}
+
+function EpisodeIndex({ regular, specials, aggregateCount, status, onRetry }) {
+  if (status === "loading") {
+    return (
+      <div className="ml-[3.75rem] mt-3 border-l border-slate-700 pl-3">
+        <Spinner label="Henter episodeindeks…" />
+      </div>
+    );
+  }
+
+  if (!regular.length && !specials.length) {
+    return (
+      <div className="ml-[3.75rem] mt-3 border-l border-slate-700 pl-3 text-xs text-slate-400">
+        <div>Konkrete episodeoplysninger er ikke tilgængelige lige nu.</div>
+        {status === "unavailable" && onRetry && (
+          <button
+            type="button"
+            onClick={onRetry}
+            className="mt-2 rounded-lg bg-slate-800/80 px-2.5 py-1.5 text-xs text-slate-200 ring-1 ring-slate-700 hover:ring-slate-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-yellow-300"
+          >
+            Prøv igen
+          </button>
+        )}
+      </div>
+    );
+  }
+
+  const allEpisodes = [...regular, ...specials];
+
+  return (
+    <div className="ml-[3.75rem] mt-3 min-w-0 border-l border-slate-700 pl-3 text-xs">
+      <EpisodeCarousel episodes={allEpisodes} />
+
+      {regular.length !== aggregateCount && (
+        <div className="mt-3 text-[0.7rem] leading-relaxed text-slate-500">
+          {regular.length} almindelige episoder er registreret i episodeindekset; TAXA-credits angiver {aggregateCount}.
+        </div>
+      )}
+    </div>
+  );
+}
+
+function EpisodeCarousel({ episodes }) {
+  const viewportRef = useRef(null);
+  const [page, setPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(1);
+
+  useEffect(() => {
+    const viewport = viewportRef.current;
+    if (!viewport) return undefined;
+
+    function updateItemsPerPage() {
+      const next = itemsPerPageForWidth(viewport.clientWidth, {
+        minItemWidth: 180,
+        gap: 10,
+        maxItems: 5,
+      });
+      setItemsPerPage(next);
+    }
+
+    updateItemsPerPage();
+    const observer = new ResizeObserver(updateItemsPerPage);
+    observer.observe(viewport);
+
+    return () => observer.disconnect();
+  }, []);
+
+  const totalPages = Math.max(1, Math.ceil(episodes.length / itemsPerPage));
+  const safePage = Math.min(page, totalPages);
+  const start = (safePage - 1) * itemsPerPage;
+  const visibleEpisodes = episodes.slice(start, start + itemsPerPage);
+
+  useEffect(() => {
+    setPage((current) => Math.min(current, totalPages));
+  }, [totalPages]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [episodes]);
+
+  function goToPage(nextPage) {
+    setPage(Math.min(totalPages, Math.max(1, nextPage)));
+  }
+
+  return (
+    <div className="episode-carousel" ref={viewportRef}>
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <div className="text-[0.68rem] font-medium uppercase tracking-[0.12em] text-slate-500">
+          Episoder
+        </div>
+
+        {totalPages > 1 && (
+          <div className="flex items-center gap-2" aria-label="Navigér i episoder">
+            <button
+              type="button"
+              className="episode-scroll-button"
+              onClick={() => goToPage(safePage - 1)}
+              disabled={safePage <= 1}
+              aria-label="Vis tidligere episoder"
+              title="Tidligere episoder"
+            >
+              <ChevronLeftIcon />
+            </button>
+            <span className="min-w-12 text-center text-[0.68rem] text-slate-500" aria-live="polite">
+              {safePage} af {totalPages}
+            </span>
+            <button
+              type="button"
+              className="episode-scroll-button"
+              onClick={() => goToPage(safePage + 1)}
+              disabled={safePage >= totalPages}
+              aria-label="Vis flere episoder"
+              title="Flere episoder"
+            >
+              <ChevronRightIcon />
+            </button>
+          </div>
+        )}
+      </div>
+
+      <div
+        className="episode-page"
+        // Behold samme kolonnebredde på sidste side. Tomme grid-spor
+        // fungerer som usynlige pladsholdere, så ét sidste kort ikke strækkes.
+        style={{ "--episode-columns": itemsPerPage }}
+      >
+        {visibleEpisodes.map((episode) => (
+          <EpisodeCard key={episode.key} episode={episode} special={episode.season === 0} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function EpisodeCard({ episode, special = false }) {
+  const date = formatEpisodeDate(episode.air_date);
+
+  return (
+    <article className={`episode-card ${special ? "is-special" : ""}`}>
+      <div className="flex items-center justify-between gap-2">
+        <span className={`episode-code ${special ? "is-special" : ""}`}>
+          {episode.key}
+        </span>
+        {special && <span className="episode-special-label">Special</span>}
+      </div>
+
+      <div className="mt-2 font-medium leading-snug text-slate-200">
+        {episode.name || "(uden titel)"}
+      </div>
+
+      {episode.overview && (
+        <p className="episode-overview mt-2 text-[0.72rem] leading-relaxed text-slate-400">
+          {episode.overview}
+        </p>
+      )}
+
+      {date && (
+        <div className="mt-auto pt-3 text-[0.68rem] text-slate-500">
+          {date}
         </div>
       )}
     </article>

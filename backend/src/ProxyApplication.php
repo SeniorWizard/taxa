@@ -13,6 +13,7 @@ final class ProxyApplication
         private readonly CacheStore $cache,
         private readonly RateLimiter $rateLimiter,
         private readonly TmdbClient $tmdb,
+        private readonly ReferenceSnapshotStore $referenceSnapshots,
     ) {
     }
 
@@ -42,10 +43,12 @@ final class ProxyApplication
             ]);
         }
 
-        $response = match ($request->route) {
-            'search' => $this->search($request, $clientHash),
-            'credits' => $this->credits($request, $clientHash),
-            'reference/taxa' => $this->taxaReference($request, $clientHash),
+        $response = match (true) {
+            $request->route === 'search' => $this->search($request, $clientHash),
+            $request->route === 'credits' => $this->credits($request, $clientHash),
+            $request->route === 'reference/taxa' => $this->taxaReference($request, $clientHash),
+            preg_match('#^reference-data/([a-z0-9-]+)$#', $request->route, $matches) === 1
+                => $this->referenceSnapshot($request, $matches[1]),
             default => throw new HttpException(404, 'Ukendt proxy-endpoint.'),
         };
 
@@ -124,6 +127,27 @@ final class ProxyApplication
             $this->config->integer('cache.reference_stale_seconds'),
             $clientHash,
         );
+    }
+
+
+    private function referenceSnapshot(Request $request, string $slug): Response
+    {
+        $snapshot = $this->referenceSnapshots->read($slug);
+        if ($snapshot === null) {
+            throw new HttpException(404, 'Reference-snapshot findes ikke. Kør refresh-reference.php først.');
+        }
+
+        $headers = [
+            'Cache-Control' => 'public, max-age=300, stale-while-revalidate=86400',
+            'ETag' => $snapshot->etag,
+            'Last-Modified' => gmdate('D, d M Y H:i:s', $snapshot->modifiedAt) . ' GMT',
+        ];
+
+        if (trim((string) $request->header('if-none-match')) === $snapshot->etag) {
+            return new Response(304, '', $headers);
+        }
+
+        return Response::rawJson($snapshot->body, 200, $headers);
     }
 
     /** @param array<string, scalar> $parameters */

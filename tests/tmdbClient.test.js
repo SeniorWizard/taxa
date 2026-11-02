@@ -132,3 +132,22 @@ test("direkte klient kræver en nøgle", async () => {
     /Angiv en TMDB API-nøgle/,
   );
 });
+
+
+test("reference snapshot hentes altid fra TAXA-backenden", async () => {
+  const calls = [];
+  const client = createTmdbClient({
+    mode: CONNECTION_MODES.DIRECT,
+    auth: "direct-key",
+    proxyBaseUrl: "https://proxy.example/tmdb/index.php",
+    fetchImpl: async (url) => {
+      calls.push(String(url));
+      return jsonResponse({ schema_version: 1, people: {}, episodes: {} });
+    },
+  });
+
+  const result = await client.getReferenceSnapshot({ slug: "taxa" });
+  const url = new URL(calls[0]);
+  assert.equal(result.schema_version, 1);
+  assert.equal(url.searchParams.get("route"), "reference-data/taxa");
+});
